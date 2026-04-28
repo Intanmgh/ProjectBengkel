@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'tambah_sparepart_page.dart';
 
 class SparepartPage extends StatefulWidget {
@@ -9,53 +11,18 @@ class SparepartPage extends StatefulWidget {
 }
 
 class _SparepartPageState extends State<SparepartPage> {
-  List<Map<String, String>> allData = [
-    {
-      "nama": "Filter Oli",
-      "kode": "MD120345",
-      "stok": "45",
-      "harga": "Rp. 100.000"
-    },
-    {
-      "nama": "Busi Iridium",
-      "kode": "MD120346",
-      "stok": "1",
-      "harga": "Rp. 85.000"
-    },
-    {
-      "nama": "V-Belt",
-      "kode": "MD120347",
-      "stok": "3",
-      "harga": "Rp. 186.000"
-    },
-  ];
 
-  List<Map<String, String>> filteredData = [];
+  String keyword = "";
 
-  @override
-  void initState() {
-    super.initState();
-    filteredData = allData;
-  }
-
-  void searchData(String keyword) {
-    final results = allData.where((data) {
-      final nama = data["nama"]!.toLowerCase();
-      final kode = data["kode"]!.toLowerCase();
-      return nama.contains(keyword.toLowerCase()) ||
-          kode.contains(keyword.toLowerCase());
-    }).toList();
-
-    setState(() {
-      filteredData = results;
-    });
-  }
+  final formatRupiah =
+      NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+
         const Text(
           "Data Sparepart",
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -71,7 +38,11 @@ class _SparepartPageState extends State<SparepartPage> {
           children: [
             Expanded(
               child: TextField(
-                onChanged: searchData,
+                onChanged: (value) {
+                  setState(() {
+                    keyword = value.toLowerCase();
+                  });
+                },
                 decoration: InputDecoration(
                   hintText: "Cari nama atau kode sparepart...",
                   prefixIcon: const Icon(Icons.search),
@@ -81,7 +52,9 @@ class _SparepartPageState extends State<SparepartPage> {
                 ),
               ),
             ),
+
             const SizedBox(width: 20),
+
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
@@ -110,84 +83,157 @@ class _SparepartPageState extends State<SparepartPage> {
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.grey.shade400),
             ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: ConstrainedBox(
-                    constraints:
-                        BoxConstraints(minWidth: constraints.maxWidth),
-                    child: DataTable(
-                      border: TableBorder.all(
-                        color: Colors.grey.shade400,
-                      ),
-                      columnSpacing: 25,
-                      headingRowHeight: 45,
-                      dataRowMinHeight: 45,
-                      dataRowMaxHeight: 55,
-                      headingRowColor: WidgetStateProperty.all(
-                          Colors.grey.shade300),
-                      headingTextStyle: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                      columns: const [
-                        DataColumn(label: Text("NO")),
-                        DataColumn(label: Text("NAMA SPAREPART")),
-                        DataColumn(label: Text("KODE PART")),
-                        DataColumn(label: Text("STOK")),
-                        DataColumn(label: Text("HARGA JUAL")),
-                        DataColumn(label: Text("AKSI")),
-                      ],
-                      rows: filteredData.asMap().entries.map((entry) {
-                        int index = entry.key;
-                        var data = entry.value;
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('sparepart')
+                  .orderBy('created_at', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
 
-                        return DataRow(cells: [
-                          DataCell(Text("${index + 1}")),
-                          DataCell(Text(data["nama"]!)),
-                          DataCell(
-                            Text(
-                              data["kode"]!,
-                              style: const TextStyle(
-                                color: Colors.blue,
-                                fontWeight: FontWeight.bold,
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final docs = snapshot.data!.docs;
+
+                final filtered = docs.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final nama = (data['nama'] ?? "").toLowerCase();
+                  final kode = (data['kode'] ?? "").toLowerCase();
+                  return nama.contains(keyword) || kode.contains(keyword);
+                }).toList();
+
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minWidth: constraints.maxWidth,
+                        ),
+                        child: DataTable(
+                          border: TableBorder.all(
+                            color: Colors.grey.shade400,
+                          ),
+                          columnSpacing: 25,
+                          headingRowHeight: 45,
+                          dataRowMinHeight: 45,
+                          dataRowMaxHeight: 55,
+                          headingRowColor: WidgetStateProperty.all(
+                              Colors.grey.shade300),
+                          headingTextStyle: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+
+                          columns: const [
+                            DataColumn(label: Text("NO")),
+                            DataColumn(label: Text("NAMA")),
+                            DataColumn(label: Text("KATEGORI")),
+                            DataColumn(label: Text("KODE")),
+                            DataColumn(label: Text("STOK")),
+                            DataColumn(label: Text("HARGA JUAL")),
+                            DataColumn(label: Text("AKSI")),
+                          ],
+
+                          rows: filtered.asMap().entries.map((entry) {
+                            int index = entry.key;
+                            var doc = entry.value;
+                            final data = doc.data() as Map<String, dynamic>;
+
+                            int stok = data['stok'] ?? 0;
+                            int minStok = data['min_stok'] ?? 0;
+
+                            return DataRow(cells: [
+
+                              DataCell(Text("${index + 1}")),
+                              DataCell(Text(data['nama'] ?? "")),
+                              DataCell(Text(data['kategori'] ?? "")),
+
+                              DataCell(
+                                Text(
+                                  data['kode'] ?? "",
+                                  style: const TextStyle(
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                          DataCell(Text(data["stok"]!)),
-                          DataCell(Text(data["harga"]!)),
 
-                          // 🔥 AKSI
-                          DataCell(
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.shade100,
-                                    borderRadius: BorderRadius.circular(4),
+                              DataCell(
+                                Text(
+                                  "$stok",
+                                  style: TextStyle(
+                                    color: stok <= minStok
+                                        ? Colors.red
+                                        : Colors.black,
+                                    fontWeight: stok <= minStok
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                                   ),
-                                  child: const Icon(Icons.edit,
-                                      size: 16, color: Colors.blue),
                                 ),
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.shade100,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Icon(Icons.delete,
-                                      size: 16, color: Colors.red),
+                              ),
+
+                              DataCell(
+                                Text(formatRupiah.format(data['harga_jual'] ?? 0)),
+                              ),
+
+                              // 🔥 AKSI (FINAL FIX ADA DI SINI)
+                              DataCell(
+                                Row(
+                                  children: [
+
+                                    // ✏️ EDIT
+                                    GestureDetector(
+                                      onTap: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (_) => TambahSparepartPage(
+                                            docId: doc.id,
+                                            data: data,
+                                          ),
+                                        );
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.shade100,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: const Icon(Icons.edit,
+                                            size: 16, color: Colors.blue),
+                                      ),
+                                    ),
+
+                                    const SizedBox(width: 6),
+
+                                    // 🗑 DELETE
+                                    GestureDetector(
+                                      onTap: () async {
+                                        await FirebaseFirestore.instance
+                                            .collection('sparepart')
+                                            .doc(doc.id)
+                                            .delete();
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.red.shade100,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: const Icon(Icons.delete,
+                                            size: 16, color: Colors.red),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          ),
-                        ]);
-                      }).toList(),
-                    ),
-                  ),
+                              ),
+                            ]);
+                          }).toList(),
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             ),

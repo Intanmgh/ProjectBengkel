@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'tambah_spk_page.dart';
+import 'detail_spk_page.dart'; // 🔥 TAMBAHAN
 
 class SpkPage extends StatefulWidget {
   const SpkPage({super.key});
 
   @override
- State<SpkPage> createState() => _SpkPageState();
+  State<SpkPage> createState() => _SpkPageState();
 }
 
 class _SpkPageState extends State<SpkPage> {
+
+  bool isTambahPage = false;
+  bool isDetailPage = false; // 🔥 TAMBAHAN
+
   List<Map<String, String>> allData = [
     {
       "tanggal": "12 FEBRUARI 2026",
@@ -70,53 +75,73 @@ class _SpkPageState extends State<SpkPage> {
     return Colors.green.shade100;
   }
 
- Widget statCard(String title, String value, Color color, IconData icon) {
-  return Expanded(
-    child: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          // 🔥 ICON (INI YANG KAMU MAU)
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: Colors.white, size: 26),
-          ),
-
-          const SizedBox(width: 12),
-
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+  Widget statCard(String title, String value, Color color, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(8),
               ),
-            ],
-          )
-        ],
+              child: Icon(icon, color: Colors.white),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title),
+                Text(
+                  value,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            )
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+
+    // 🔥 HALAMAN TAMBAH
+    if (isTambahPage) {
+      return TambahSpkPage(
+        onBack: () {
+          setState(() {
+            isTambahPage = false;
+          });
+        },
+      );
+    }
+
+    // 🔥 HALAMAN DETAIL
+    if (isDetailPage) {
+      return DetailSpkPage(
+        onBack: () {
+          setState(() {
+            isDetailPage = false;
+          });
+        },
+      );
+    }
+
+    // 🔥 HALAMAN UTAMA (TIDAK DIUBAH)
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+
         const Text(
           "Data Surat Perintah Kerja (SPK)",
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -127,22 +152,20 @@ class _SpkPageState extends State<SpkPage> {
 
         const SizedBox(height: 20),
 
-        // 🔥 CARD STATISTIK
         Row(
-        children: [
-          statCard("Semua SPK", "24", Colors.purple, Icons.description),
-          const SizedBox(width: 20),
-          statCard("Menunggu", "15 SPK", Colors.orange, Icons.schedule),
-          const SizedBox(width: 20),
-          statCard("Proses", "10 SPK", Colors.blue, Icons.build),
-          const SizedBox(width: 20),
-          statCard("Selesai", "5 SPK", Colors.green, Icons.check_circle),
-        ],
-      ),
+          children: [
+            statCard("Semua SPK", "24", Colors.purple, Icons.description),
+            const SizedBox(width: 20),
+            statCard("Menunggu", "15 SPK", Colors.orange, Icons.schedule),
+            const SizedBox(width: 20),
+            statCard("Proses", "10 SPK", Colors.blue, Icons.build),
+            const SizedBox(width: 20),
+            statCard("Selesai", "5 SPK", Colors.green, Icons.check_circle),
+          ],
+        ),
 
         const SizedBox(height: 20),
 
-        // 🔍 SEARCH + BUTTON
         Row(
           children: [
             Expanded(
@@ -164,22 +187,18 @@ class _SpkPageState extends State<SpkPage> {
                 foregroundColor: Colors.white,
               ),
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const TambahSpkPage(),
-                  ),
-                );
+                setState(() {
+                  isTambahPage = true;
+                });
               },
               icon: const Icon(Icons.add),
-              label: const Text("Tambah SPK"),
+              label: const Text("Tambah SPK Baru"),
             ),
           ],
         ),
 
         const SizedBox(height: 20),
 
-        // 🔥 TABLE
         Expanded(
           child: Container(
             padding: const EdgeInsets.all(10),
@@ -226,7 +245,6 @@ class _SpkPageState extends State<SpkPage> {
                           DataCell(Text(data["kendaraan"]!)),
                           DataCell(Text(data["montir"]!)),
 
-                          // STATUS
                           DataCell(
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -245,19 +263,21 @@ class _SpkPageState extends State<SpkPage> {
                             ),
                           ),
 
-                          // AKSI
+                          // 🔥 FIX TOMBOL DETAIL
                           DataCell(
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.indigo,
-                              foregroundColor: Colors.white, // 🔥 langsung global ke text & icon
-                              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 8),
-                              textStyle: const TextStyle(fontSize: 12),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.indigo,
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  isDetailPage = true;
+                                });
+                              },
+                              child: const Text("Detail"),
                             ),
-                            onPressed: () {},
-                            child: const Text("Detail"),
                           ),
-                        ),
                         ]);
                       }).toList(),
                     ),

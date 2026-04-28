@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 
 class TambahServisPage extends StatelessWidget {
-  const TambahServisPage({super.key});
+  final VoidCallback onBack;
+
+  const TambahServisPage({
+    super.key,
+    required this.onBack,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-
-      body: Padding(
+    return Material( // 🔥 FIX WAJIB
+      color: Colors.grey.shade100,
+      child: Padding(
         padding: const EdgeInsets.all(20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,7 +46,7 @@ class TambahServisPage extends StatelessWidget {
             // ================= RIGHT =================
             Expanded(
               flex: 1,
-              child: summaryCard(context),
+              child: summaryCard(),
             ),
           ],
         ),
@@ -59,23 +63,26 @@ class TambahServisPage extends StatelessWidget {
           input("Cari Nomor SPK"),
           const SizedBox(height: 10),
 
-          DataTable(
-            border: TableBorder.all(color: Colors.grey.shade300),
-            columns: const [
-              DataColumn(label: Text("Nomor SPK")),
-              DataColumn(label: Text("Nama Pelanggan")),
-              DataColumn(label: Text("Kendaraan")),
-              DataColumn(label: Text("Total Harga")),
-            ],
-            rows: const [
-              DataRow(cells: [
-                DataCell(Text("SPK - 001",
-                    style: TextStyle(color: Colors.blue))),
-                DataCell(Text("Farid Shidiq")),
-                DataCell(Text("Mazda 3 HB")),
-                DataCell(Text("Rp. 65.000")),
-              ])
-            ],
+          SizedBox(
+            width: double.infinity,
+            child: DataTable(
+              border: TableBorder.all(color: Colors.grey.shade300),
+              columns: const [
+                DataColumn(label: Text("Nomor SPK")),
+                DataColumn(label: Text("Nama Pelanggan")),
+                DataColumn(label: Text("Kendaraan")),
+                DataColumn(label: Text("Total Harga")),
+              ],
+              rows: const [
+                DataRow(cells: [
+                  DataCell(Text("SPK - 001",
+                      style: TextStyle(color: Colors.blue))),
+                  DataCell(Text("Farid Shidiq")),
+                  DataCell(Text("Mazda 3 HB")),
+                  DataCell(Text("Rp. 65.000")),
+                ])
+              ],
+            ),
           )
         ],
       ),
@@ -100,26 +107,29 @@ class TambahServisPage extends StatelessWidget {
           ),
           const SizedBox(height: 10),
 
-          DataTable(
-            border: TableBorder.all(color: Colors.grey.shade300),
-            columns: const [
-              DataColumn(label: Text("Nama")),
-              DataColumn(label: Text("Kode")),
-              DataColumn(label: Text("Jumlah")),
-              DataColumn(label: Text("Harga")),
-              DataColumn(label: Text("Total")),
-              DataColumn(label: Text("Aksi")),
-            ],
-            rows: [
-              DataRow(cells: [
-                const DataCell(Text("Filter Oli")),
-                const DataCell(Text("MD12301")),
-                const DataCell(Text("1")),
-                const DataCell(Text("Rp. 65.000")),
-                const DataCell(Text("Rp. 65.000")),
-                DataCell(Icon(Icons.delete, color: Colors.red)),
-              ])
-            ],
+          SizedBox(
+            width: double.infinity,
+            child: DataTable(
+              border: TableBorder.all(color: Colors.grey.shade300),
+              columns: const [
+                DataColumn(label: Text("Nama")),
+                DataColumn(label: Text("Kode")),
+                DataColumn(label: Text("Jumlah")),
+                DataColumn(label: Text("Harga")),
+                DataColumn(label: Text("Total")),
+                DataColumn(label: Text("Aksi")),
+              ],
+              rows: [
+                DataRow(cells: [
+                  const DataCell(Text("Filter Oli")),
+                  const DataCell(Text("MD12301")),
+                  const DataCell(Text("1")),
+                  const DataCell(Text("Rp. 65.000")),
+                  const DataCell(Text("Rp. 65.000")),
+                  DataCell(Icon(Icons.delete, color: Colors.red)),
+                ])
+              ],
+            ),
           )
         ],
       ),
@@ -155,14 +165,17 @@ class TambahServisPage extends StatelessWidget {
   }
 
   // ================= SUMMARY =================
-  Widget summaryCard(BuildContext context) {
+  Widget summaryCard() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 6)
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 6,
+          )
         ],
       ),
       child: Column(
@@ -219,9 +232,7 @@ class TambahServisPage extends StatelessWidget {
               foregroundColor: Colors.white,
               minimumSize: const Size(double.infinity, 45),
             ),
-            onPressed: () {
-              Navigator.pop(context);
-            },
+            onPressed: onBack, // 🔥 FIX (bukan Navigator.pop)
             child: const Text("Batal Transaksi"),
           ),
 

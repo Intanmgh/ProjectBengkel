@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'tambah_servis_page.dart';
+import 'detail_servis_page.dart'; // 🔥 TAMBAHAN
 
 class ServisPage extends StatefulWidget {
   const ServisPage({super.key});
@@ -9,6 +10,10 @@ class ServisPage extends StatefulWidget {
 }
 
 class _ServisPageState extends State<ServisPage> {
+
+  bool isTambahServis = false;
+  bool isDetailServis = false; // 🔥 TAMBAHAN
+
   List<Map<String, String>> allData = [
     {
       "invoice": "INVOICE-123244",
@@ -51,6 +56,30 @@ class _ServisPageState extends State<ServisPage> {
 
   @override
   Widget build(BuildContext context) {
+
+    // 🔥 HALAMAN TAMBAH SERVIS
+    if (isTambahServis) {
+      return TambahServisPage(
+        onBack: () {
+          setState(() {
+            isTambahServis = false;
+          });
+        },
+      );
+    }
+
+    // 🔥 HALAMAN DETAIL SERVIS
+    if (isDetailServis) {
+      return DetailServisPage(
+        onBack: () {
+          setState(() {
+            isDetailServis = false;
+          });
+        },
+      );
+    }
+
+    // 🔥 HALAMAN UTAMA
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -87,12 +116,9 @@ class _ServisPageState extends State<ServisPage> {
                 foregroundColor: Colors.white,
               ),
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const TambahServisPage(),
-                  ),
-                );
+                setState(() {
+                  isTambahServis = true;
+                });
               },
               icon: const Icon(Icons.person_add),
               label: const Text("Tambah Invoice Baru"),
@@ -102,7 +128,7 @@ class _ServisPageState extends State<ServisPage> {
 
         const SizedBox(height: 20),
 
-        // 🔥 TABLE FULL WIDTH
+        // 🔥 TABLE
         Expanded(
           child: Container(
             padding: const EdgeInsets.all(10),
@@ -160,18 +186,24 @@ class _ServisPageState extends State<ServisPage> {
                           DataCell(Text(data["plat"]!)),
                           DataCell(Text(data["kendaraan"]!)),
 
-                          // 🔥 AKSI
+                          // 🔥 FIX DETAIL BUTTON
                           DataCell(
                             ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.indigo,
-                              foregroundColor: Colors.white, // 🔥 langsung global ke text & icon
-                              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 8),
-                              textStyle: const TextStyle(fontSize: 12),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.indigo,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 30, vertical: 8),
+                                textStyle:
+                                    const TextStyle(fontSize: 12),
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  isDetailServis = true;
+                                });
+                              },
+                              child: const Text("Detail"),
                             ),
-                            onPressed: () {},
-                            child: const Text("Detail"),
-                          ),
                           ),
                         ]);
                       }).toList(),

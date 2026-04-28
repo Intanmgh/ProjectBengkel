@@ -1,21 +1,38 @@
 import 'package:flutter/material.dart';
 
 class TambahSpkPage extends StatelessWidget {
-  const TambahSpkPage({super.key});
+  final VoidCallback onBack;
+
+  const TambahSpkPage({
+    super.key,
+    required this.onBack,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-      body: SingleChildScrollView(
+    return Material( // 🔥 WAJIB BIAR GA ERROR
+      color: Colors.transparent,
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Buat Surat Perintah Kerja (SPK)",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+
+            // 🔥 HEADER + BACK
+            Row(
+              children: [
+                IconButton(
+                  onPressed: onBack, // 🔥 BUKAN Navigator.pop
+                  icon: const Icon(Icons.arrow_back),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  "Buat Surat Perintah Kerja (SPK)",
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
+
             const SizedBox(height: 5),
             const Text("Lengkapi formulir dibawah untuk mendaftarkan antrian servis"),
 
@@ -32,11 +49,10 @@ class TambahSpkPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
 
-                  // ===================== 1 =====================
                   sectionTitle(Icons.person, "1. Data Pelanggan & Kendaraan"),
 
                   label("Cari Pelanggan / No. Plat"),
-                  input("Ketik nama atau plat nomor"),
+                  input("Contoh: B 1234 ABC atau nama pelanggan"),
 
                   const SizedBox(height: 15),
 
@@ -60,28 +76,25 @@ class TambahSpkPage extends StatelessWidget {
 
                   const SizedBox(height: 25),
 
-                  // ===================== 2 =====================
                   sectionTitle(Icons.description, "2. Keluhan & Jenis Servis"),
 
                   label("Detail Keluhan"),
-                  input("Jelaskan masalah...", maxLines: 3),
+                  input("Contoh: Mesin berisik saat jalan", maxLines: 3),
 
                   const SizedBox(height: 10),
 
                   label("Jenis Servis"),
-                  dropdown("Pilih Jenis Servis"),
+                  dropdown("Pilih jenis servis"),
 
                   const SizedBox(height: 25),
 
-                  // ===================== 3 =====================
                   sectionTitle(Icons.engineering, "3. Pilih Montir"),
 
                   label("Montir Yang Bertugas"),
-                  dropdown("Pilih Montir"),
+                  dropdown("Pilih montir"),
 
                   const SizedBox(height: 25),
 
-                  // ===================== 4 =====================
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -122,7 +135,6 @@ class TambahSpkPage extends StatelessWidget {
 
                   const SizedBox(height: 25),
 
-                  // ===================== 5 =====================
                   sectionTitle(Icons.access_time, "5. Pilih Waktu"),
 
                   Row(
@@ -151,7 +163,6 @@ class TambahSpkPage extends StatelessWidget {
 
                   const SizedBox(height: 25),
 
-                  // ===================== TOTAL =====================
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -181,9 +192,7 @@ class TambahSpkPage extends StatelessWidget {
                                 backgroundColor: Colors.red,
                                 foregroundColor: Colors.white,
                               ),
-                              onPressed: () {
-                                Navigator.pop(context); // 🔥 BALIK KE HALAMAN SPK
-                              },
+                              onPressed: onBack, // 🔥 FIX
                               child: const Text("Batal"),
                             ),
                             const SizedBox(width: 10),
@@ -192,9 +201,7 @@ class TambahSpkPage extends StatelessWidget {
                                 backgroundColor: Colors.blue,
                                 foregroundColor: Colors.white,
                               ),
-                              onPressed: () {
-                                Navigator.pop(context); // 🔥 sementara balik juga (nanti bisa simpan data)
-                              },
+                              onPressed: onBack, // 🔥 FIX
                               icon: const Icon(Icons.save),
                               label: const Text("Simpan Data Servis"),
                             ),
