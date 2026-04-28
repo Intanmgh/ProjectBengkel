@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "540468441816",
+    "project_id": "bengkel-project-d3bac",
+    "storage_bucket": "bengkel-project-d3bac.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:540468441816:android:551773c65575806e46ddad",
+        "android_client_info": {
+          "package_name": "com.example.web_bengkel_mitsubishi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQ7aRECHBY2AE0QhlmUA7UYYD9Gm9ARK8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
