@@ -8,6 +8,9 @@ import '../keluhan/keluhan_page.dart';
 import '../laporan/laporan_page.dart';
 import '../auth/logout_page.dart';
 import '../montir/history_montir_page.dart';
+import '../manajemen_akun/manajemen_akun_page.dart';
+import '../profile/profile_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -64,6 +67,8 @@ class _DashboardPageState extends State<DashboardPage> {
                 menuItem(Icons.note, "Servis", "servis"),
                 menuItem(Icons.warning, "Keluhan", "keluhan"),
                 menuItem(Icons.bar_chart, "Laporan", "laporan"),
+                menuItem(Icons.account_box, "Manajemen Akun", "manajemen_akun"),
+                
 
                 const Spacer(),
 
@@ -94,34 +99,80 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
 
           // 🔵 CONTENT
-          Expanded(
-            child: Column(
-              children: [
-                // HEADER
-                Container(
-                  height: 70,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  color: Colors.white,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        getTitle(),
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Row(
-                        children: [
-                          CircleAvatar(child: Icon(Icons.person)),
-                          SizedBox(width: 10),
-                          Text("admin"),
-                        ],
-                      )
-                    ],
+Expanded(
+  child: Column(
+    children: [
+
+      // HEADER
+      Container(
+        height: 70,
+        padding:
+            const EdgeInsets.symmetric(
+          horizontal: 20,
+        ),
+
+        color: Colors.white,
+
+        child: Row(
+          mainAxisAlignment:
+              MainAxisAlignment.spaceBetween,
+
+          children: [
+
+            Text(
+              getTitle(),
+
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight:
+                    FontWeight.bold,
+              ),
+            ),
+
+            // 🔥 PROFILE
+
+            GestureDetector(
+
+              onTap: () {
+
+                showDialog(
+                  context: context,
+
+                  builder: (context) =>
+                      const ProfilePage(),
+                );
+              },
+
+              child: Row(
+                children: [
+
+                  CircleAvatar(
+                    radius: 22,
+
+                    backgroundColor:
+                        Colors.blue.shade100,
+
+                    child: const Icon(
+                      Icons.person,
+                      color: Colors.blue,
+                    ),
                   ),
-                ),
+
+                  const SizedBox(width: 10),
+
+                  const Text(
+                    "admin",
+
+                    style: TextStyle(
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
 
                 // CONTENT
                 Expanded(
@@ -160,12 +211,16 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget buildContent() {
+
   if (selectedMenu == "pelanggan") {
+
     return const PelangganPage();
 
   } else if (selectedMenu == "montir") {
+
     return MontirPage(
       onHistoryClick: () {
+
         setState(() {
           selectedMenu = "history";
         });
@@ -173,8 +228,10 @@ class _DashboardPageState extends State<DashboardPage> {
     );
 
   } else if (selectedMenu == "history") {
+
     return HistoryMontirPage(
       onBack: () {
+
         setState(() {
           selectedMenu = "montir";
         });
@@ -182,20 +239,30 @@ class _DashboardPageState extends State<DashboardPage> {
     );
 
   } else if (selectedMenu == "sparepart") {
+
     return const SparepartPage();
 
   } else if (selectedMenu == "spk") {
+
     return const SpkPage();
 
   } else if (selectedMenu == "servis") {
+
     return const ServisPage();
 
   } else if (selectedMenu == "keluhan") {
+
     return const KeluhanPage();
 
   } else if (selectedMenu == "laporan") {
+
     return const LaporanPage();
-  }
+
+  } else if (selectedMenu == "manajemen_akun") {
+
+    return const ManajemenAkunPage();
+
+  } 
 
   return dashboardContent();
 }
@@ -203,23 +270,108 @@ class _DashboardPageState extends State<DashboardPage> {
 
 
   // 🔥 DASHBOARD FIXED TABLE
-  Widget dashboardContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-  children: [
-    statCard("Data Pelanggan", "15", Colors.blue, Icons.people),
-    const SizedBox(width: 20),
-    statCard("Data Montir", "10", Colors.orange, Icons.build),
-    const SizedBox(width: 20),
-    statCard("Data Sparepart", "1,256", Colors.indigo, Icons.inventory),
-    const SizedBox(width: 20),
-    statCard("Keluhan", "5", Colors.red, Icons.report),
-  ],
-), // 🔥 WAJIB ADA KOMA DI SINI
+Widget dashboardContent() {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
 
-        const SizedBox(height: 30),
+    children: [
+
+      Row(
+        children: [
+
+          // ================= PELANGGAN =================
+
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('pelanggan')
+                .snapshots(),
+
+            builder: (context, snapshot) {
+
+              int total =
+                  snapshot.data?.docs.length ?? 0;
+
+              return statCard(
+                "Data Pelanggan",
+                total.toString(),
+                Colors.blue,
+                Icons.people,
+              );
+            },
+          ),
+
+          const SizedBox(width: 20),
+
+          // ================= MONTIR =================
+
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('montir')
+                .snapshots(),
+
+            builder: (context, snapshot) {
+
+              int total =
+                  snapshot.data?.docs.length ?? 0;
+
+              return statCard(
+                "Data Montir",
+                total.toString(),
+                Colors.orange,
+                Icons.build,
+              );
+            },
+          ),
+
+          const SizedBox(width: 20),
+
+          // ================= SPAREPART =================
+
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('sparepart')
+                .snapshots(),
+
+            builder: (context, snapshot) {
+
+              int total =
+                  snapshot.data?.docs.length ?? 0;
+
+              return statCard(
+                "Data Sparepart",
+                total.toString(),
+                Colors.indigo,
+                Icons.inventory,
+              );
+            },
+          ),
+
+          const SizedBox(width: 20),
+
+          // ================= KELUHAN =================
+
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('spk')
+                .snapshots(),
+
+            builder: (context, snapshot) {
+
+              int total =
+                  snapshot.data?.docs.length ?? 0;
+
+              return statCard(
+                "Keluhan",
+                total.toString(),
+                Colors.red,
+                Icons.report,
+              );
+            },
+          ),
+        ],
+      ),
+
+      const SizedBox(height: 30),
 
         Container(
           padding: const EdgeInsets.all(20),
@@ -289,21 +441,41 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   String getTitle() {
+
   if (selectedMenu == "pelanggan") {
+
     return "Data Pelanggan";
+
   } else if (selectedMenu == "montir") {
+
     return "Data Montir";
+
   } else if (selectedMenu == "sparepart") {
+
     return "Data Sparepart";
+
   } else if (selectedMenu == "spk") {
-    return "Data SPK"; // 🔥 TAMBAH INI
-  }else if (selectedMenu == "servis") {
-  return "Pencatatan Data Servis";
-  }else if (selectedMenu == "keluhan") {
+
+    return "Data SPK";
+
+  } else if (selectedMenu == "servis") {
+
+    return "Pencatatan Data Servis";
+
+  } else if (selectedMenu == "keluhan") {
+
     return "Keluhan Pelanggan";
-  }else if (selectedMenu == "laporan") {
+
+  } else if (selectedMenu == "laporan") {
+
     return "Laporan Bengkel";
+
+  } else if (selectedMenu == "manajemen_akun") {
+
+    return "Manajemen Akun";
+
   }
+
   return "Dashboard Admin";
 }
 

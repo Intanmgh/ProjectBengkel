@@ -1,13 +1,25 @@
 import 'package:flutter/material.dart';
+import 'laporan_servis_page.dart'; // 🔥 IMPORT
+import 'riwayat_servis_page.dart';
 
-class LaporanPage extends StatelessWidget {
+class LaporanPage extends StatefulWidget {
   const LaporanPage({super.key});
+
+  @override
+  State<LaporanPage> createState() => _LaporanPageState();
+}
+
+class _LaporanPageState extends State<LaporanPage> {
+
+  bool isLaporanServis = false; // 🔥 STATE
+  bool isRiwayatServis = false;
 
   Widget laporanCard({
     required IconData icon,
     required Color color,
     required String title,
     required String desc,
+    required VoidCallback onTap, // 🔥 TAMBAHAN
   }) {
     return Expanded(
       child: Container(
@@ -26,7 +38,7 @@ class LaporanPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ICON
+
             Container(
               width: 50,
               height: 50,
@@ -39,7 +51,6 @@ class LaporanPage extends StatelessWidget {
 
             const SizedBox(height: 15),
 
-            // TITLE
             Text(
               title,
               style: const TextStyle(
@@ -50,7 +61,6 @@ class LaporanPage extends StatelessWidget {
 
             const SizedBox(height: 8),
 
-            // DESC
             Text(
               desc,
               style: const TextStyle(color: Colors.grey),
@@ -58,9 +68,8 @@ class LaporanPage extends StatelessWidget {
 
             const SizedBox(height: 15),
 
-            // BUTTON LINK
             TextButton(
-              onPressed: () {},
+              onPressed: onTap, // 🔥 DIPAKAI
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -78,6 +87,29 @@ class LaporanPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    // 🔥 HALAMAN DETAIL LAPORAN
+    if (isLaporanServis) {
+      return LaporanServisPage(
+        onBack: () {
+          setState(() {
+            isLaporanServis = false;
+          });
+        },
+      );
+    }
+
+    if (isRiwayatServis) {
+      return RiwayatServisPage(
+        onBack: () {
+          setState(() {
+            isRiwayatServis = false;
+          });
+        },
+      );
+    }
+
+    // 🔥 HALAMAN UTAMA
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -91,7 +123,6 @@ class LaporanPage extends StatelessWidget {
 
         const SizedBox(height: 30),
 
-        // 🔥 CARD LIST
         Row(
           children: [
             laporanCard(
@@ -100,14 +131,26 @@ class LaporanPage extends StatelessWidget {
               title: "Laporan Servis & Transaksi",
               desc:
                   "Rekapitulasi pekerjaan mekanik, estimasi waktu, dan status pengerjaan kendaraan",
+              onTap: () {
+                setState(() {
+                  isLaporanServis = true; // 🔥 MASUK HALAMAN
+                });
+              },
             ),
+
             const SizedBox(width: 20),
+
             laporanCard(
               icon: Icons.description,
               color: Colors.green,
               title: "Riwayat Servis Pelanggan",
               desc:
                   "Pencarian data historis berdasarkan plat nomor atau nama pemilik kendaraan",
+              onTap: () {
+                setState(() {
+                  isRiwayatServis = true;
+                });
+              },
             ),
           ],
         ),

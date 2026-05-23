@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'detail_keluhan_page.dart'; // 🔥 TAMBAHAN
 
 class KeluhanPage extends StatefulWidget {
   const KeluhanPage({super.key});
@@ -8,6 +9,9 @@ class KeluhanPage extends StatefulWidget {
 }
 
 class _KeluhanPageState extends State<KeluhanPage> {
+
+  bool isDetailKeluhan = false; // 🔥 TAMBAHAN
+
   List<Map<String, String>> allData = [
     {
       "tanggal": "12 Februari 2026",
@@ -67,7 +71,6 @@ class _KeluhanPageState extends State<KeluhanPage> {
     return Colors.green.shade100;
   }
 
-  // ✅ FIXED STAT CARD (GA ERROR + ADA ICON)
   Widget statCard(String title, String value, Color color) {
     IconData icon;
 
@@ -88,7 +91,6 @@ class _KeluhanPageState extends State<KeluhanPage> {
         ),
         child: Row(
           children: [
-            // 🔥 ICON MASUK SINI (AUTO)
             Container(
               width: 40,
               height: 40,
@@ -98,9 +100,7 @@ class _KeluhanPageState extends State<KeluhanPage> {
               ),
               child: Icon(icon, color: Colors.white, size: 22),
             ),
-
             const SizedBox(width: 10),
-
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -120,6 +120,19 @@ class _KeluhanPageState extends State<KeluhanPage> {
 
   @override
   Widget build(BuildContext context) {
+
+    // 🔥 HALAMAN DETAIL
+    if (isDetailKeluhan) {
+      return DetailKeluhanPage(
+        onBack: () {
+          setState(() {
+            isDetailKeluhan = false;
+          });
+        },
+      );
+    }
+
+    // 🔥 HALAMAN UTAMA
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -133,7 +146,6 @@ class _KeluhanPageState extends State<KeluhanPage> {
 
         const SizedBox(height: 20),
 
-        // 🔥 STAT CARD (TIDAK PERLU DIUBAH)
         Row(
           children: [
             statCard("Belum Ditangani", "10", Colors.orange),
@@ -146,7 +158,6 @@ class _KeluhanPageState extends State<KeluhanPage> {
 
         const SizedBox(height: 20),
 
-        // 🔍 SEARCH
         TextField(
           onChanged: searchData,
           decoration: InputDecoration(
@@ -160,7 +171,6 @@ class _KeluhanPageState extends State<KeluhanPage> {
 
         const SizedBox(height: 20),
 
-        // 🔥 TABLE
         Expanded(
           child: Container(
             padding: const EdgeInsets.all(10),
@@ -201,7 +211,6 @@ class _KeluhanPageState extends State<KeluhanPage> {
                           DataCell(Text(data["plat"]!)),
                           DataCell(Text(data["keluhan"]!)),
 
-                          // STATUS
                           DataCell(
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -220,14 +229,18 @@ class _KeluhanPageState extends State<KeluhanPage> {
                             ),
                           ),
 
-                          // AKSI
+                          // 🔥 FIX DETAIL BUTTON
                           DataCell(
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.indigo,
                                 foregroundColor: Colors.white,
                               ),
-                              onPressed: () {},
+                              onPressed: () {
+                                setState(() {
+                                  isDetailKeluhan = true;
+                                });
+                              },
                               child: const Text("Detail"),
                             ),
                           ),
