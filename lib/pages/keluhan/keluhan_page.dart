@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'detail_keluhan_page.dart'; // 🔥 TAMBAHAN
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'detail_keluhan_page.dart';
 
 class KeluhanPage extends StatefulWidget {
   const KeluhanPage({super.key});
@@ -9,65 +10,19 @@ class KeluhanPage extends StatefulWidget {
 }
 
 class _KeluhanPageState extends State<KeluhanPage> {
+  bool isDetailKeluhan = false;
 
-  bool isDetailKeluhan = false; // 🔥 TAMBAHAN
-
-  List<Map<String, String>> allData = [
-    {
-      "tanggal": "12 Februari 2026",
-      "nama": "Farid Shidiq S",
-      "plat": "B 1245 ACB",
-      "keluhan": "Bunyi cit cit di dalam mesin",
-      "status": "Menunggu"
-    },
-    {
-      "tanggal": "10 Februari 2026",
-      "nama": "Farid Shidiq S",
-      "plat": "B 1245 ACB",
-      "keluhan": "Mesin terasa berat saat dinyalakan",
-      "status": "Selesai"
-    },
-    {
-      "tanggal": "09 Februari 2026",
-      "nama": "Farid Shidiq S",
-      "plat": "B 1245 ACB",
-      "keluhan": "Getaran berlebih saat idle",
-      "status": "Proses"
-    },
-  ];
-
-  List<Map<String, String>> filteredData = [];
-
-  @override
-  void initState() {
-    super.initState();
-    filteredData = allData;
-  }
-
-  void searchData(String keyword) {
-    final results = allData.where((data) {
-      return data["nama"]!
-              .toLowerCase()
-              .contains(keyword.toLowerCase()) ||
-          data["plat"]!
-              .toLowerCase()
-              .contains(keyword.toLowerCase());
-    }).toList();
-
-    setState(() {
-      filteredData = results;
-    });
-  }
+  DocumentSnapshot? selectedKeluhan;
 
   Color statusColor(String status) {
     if (status == "Menunggu") return Colors.orange;
-    if (status == "Proses") return Colors.blue;
+    if (status == "Sedang Proses") return Colors.blue;
     return Colors.green;
   }
 
   Color statusBg(String status) {
     if (status == "Menunggu") return Colors.orange.shade100;
-    if (status == "Proses") return Colors.blue.shade100;
+    if (status == "Sedang Proses") return Colors.blue.shade100;
     return Colors.green.shade100;
   }
 
@@ -98,7 +53,11 @@ class _KeluhanPageState extends State<KeluhanPage> {
                 color: color,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: Colors.white, size: 22),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 22,
+              ),
             ),
             const SizedBox(width: 10),
             Column(
@@ -108,7 +67,9 @@ class _KeluhanPageState extends State<KeluhanPage> {
                 Text(
                   value,
                   style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             )
@@ -120,139 +81,197 @@ class _KeluhanPageState extends State<KeluhanPage> {
 
   @override
   Widget build(BuildContext context) {
-
-    // 🔥 HALAMAN DETAIL
-    if (isDetailKeluhan) {
+    if (isDetailKeluhan && selectedKeluhan != null) {
       return DetailKeluhanPage(
+        keluhanDoc: selectedKeluhan!,
         onBack: () {
           setState(() {
             isDetailKeluhan = false;
+            selectedKeluhan = null;
           });
         },
       );
     }
 
-    // 🔥 HALAMAN UTAMA
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           "Keluhan Pelanggan",
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
         ),
 
         const SizedBox(height: 10),
-        const Text("Kelola dan pantau seluruh keluhan pelanggan"),
+
+        const Text(
+          "Kelola dan pantau seluruh keluhan pelanggan",
+        ),
 
         const SizedBox(height: 20),
 
         Row(
           children: [
-            statCard("Belum Ditangani", "10", Colors.orange),
+            statCard("Belum Ditangani", "-", Colors.orange),
             const SizedBox(width: 20),
-            statCard("Sedang Proses", "8", Colors.blue),
+            statCard("Sedang Proses", "-", Colors.blue),
             const SizedBox(width: 20),
-            statCard("Selesai", "20", Colors.green),
+            statCard("Selesai", "-", Colors.green),
           ],
         ),
 
         const SizedBox(height: 20),
 
-        TextField(
-          onChanged: searchData,
-          decoration: InputDecoration(
-            hintText: "Cari nama pelanggan atau nomor polisi...",
-            prefixIcon: const Icon(Icons.search),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 20),
-
         Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade400),
-            ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('keluhan')
+                .orderBy(
+                  'created_at',
+                  descending: true,
+                )
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState ==
+                  ConnectionState.waiting) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+
+              if (!snapshot.hasData ||
+                  snapshot.data!.docs.isEmpty) {
+                return const Center(
+                  child: Text(
+                    "Belum ada keluhan masuk",
+                  ),
+                );
+              }
+
+              final docs = snapshot.data!.docs;
+
+              return Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius:
+                      BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.grey.shade400,
+                  ),
+                ),
+                child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  child: ConstrainedBox(
-                    constraints:
-                        BoxConstraints(minWidth: constraints.maxWidth),
-                    child: DataTable(
-                      border: TableBorder.all(color: Colors.grey.shade400),
-                      columnSpacing: 25,
-                      headingRowColor:
-                          WidgetStateProperty.all(Colors.grey.shade300),
-                      columns: const [
-                        DataColumn(label: Text("NO")),
-                        DataColumn(label: Text("TANGGAL")),
-                        DataColumn(label: Text("NAMA")),
-                        DataColumn(label: Text("NO. PLAT")),
-                        DataColumn(label: Text("KELUHAN")),
-                        DataColumn(label: Text("STATUS")),
-                        DataColumn(label: Text("AKSI")),
-                      ],
-                      rows: filteredData.asMap().entries.map((entry) {
+                  child: DataTable(
+                    border: TableBorder.all(
+                      color: Colors.grey.shade400,
+                    ),
+                    columnSpacing: 25,
+                    headingRowColor:
+                        WidgetStateProperty.all(
+                      Colors.grey.shade300,
+                    ),
+                    columns: const [
+                      DataColumn(label: Text("NO")),
+                      DataColumn(label: Text("NAMA")),
+                      DataColumn(label: Text("EMAIL")),
+                      DataColumn(label: Text("JUDUL")),
+                      DataColumn(label: Text("STATUS")),
+                      DataColumn(label: Text("AKSI")),
+                    ],
+                    rows: docs.asMap().entries.map(
+                      (entry) {
                         int index = entry.key;
-                        var data = entry.value;
 
-                        return DataRow(cells: [
-                          DataCell(Text("${index + 1}")),
-                          DataCell(Text(data["tanggal"]!)),
-                          DataCell(Text(data["nama"]!)),
-                          DataCell(Text(data["plat"]!)),
-                          DataCell(Text(data["keluhan"]!)),
+                        final doc = entry.value;
 
-                          DataCell(
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: statusBg(data["status"]!),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                data["status"]!,
-                                style: TextStyle(
-                                  color: statusColor(data["status"]!),
-                                  fontWeight: FontWeight.bold,
+                        final data =
+                            doc.data() as Map<String, dynamic>;
+
+                        return DataRow(
+                          cells: [
+                            DataCell(
+                              Text("${index + 1}"),
+                            ),
+
+                            DataCell(
+                              Text(data["nama"] ?? ""),
+                            ),
+
+                            DataCell(
+                              Text(data["email"] ?? ""),
+                            ),
+
+                            DataCell(
+                              Text(data["judul"] ?? ""),
+                            ),
+
+                            DataCell(
+                              Container(
+                                padding:
+                                    const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration:
+                                    BoxDecoration(
+                                  color: statusBg(
+                                    data["status"] ??
+                                        "Menunggu",
+                                  ),
+                                  borderRadius:
+                                      BorderRadius.circular(
+                                    6,
+                                  ),
+                                ),
+                                child: Text(
+                                  data["status"] ??
+                                      "Menunggu",
+                                  style: TextStyle(
+                                    color: statusColor(
+                                      data["status"] ??
+                                          "Menunggu",
+                                    ),
+                                    fontWeight:
+                                        FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
 
-                          // 🔥 FIX DETAIL BUTTON
-                          DataCell(
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.indigo,
-                                foregroundColor: Colors.white,
+                            DataCell(
+                              ElevatedButton(
+                                style:
+                                    ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      Colors.indigo,
+                                  foregroundColor:
+                                      Colors.white,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    selectedKeluhan =
+                                        doc;
+                                    isDetailKeluhan =
+                                        true;
+                                  });
+                                },
+                                child:
+                                    const Text("Detail"),
                               ),
-                              onPressed: () {
-                                setState(() {
-                                  isDetailKeluhan = true;
-                                });
-                              },
-                              child: const Text("Detail"),
                             ),
-                          ),
-                        ]);
-                      }).toList(),
-                    ),
+                          ],
+                        );
+                      },
+                    ).toList(),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
-        )
+        ),
       ],
     );
   }
