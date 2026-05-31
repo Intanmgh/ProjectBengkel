@@ -1,120 +1,245 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class DetailKeluhanPage extends StatelessWidget {
+class DetailKeluhanPage extends StatefulWidget {
   final VoidCallback onBack;
+  final DocumentSnapshot keluhanDoc;
 
   const DetailKeluhanPage({
     super.key,
     required this.onBack,
+    required this.keluhanDoc,
   });
 
   @override
+  State<DetailKeluhanPage> createState() =>
+      _DetailKeluhanPageState();
+}
+
+class _DetailKeluhanPageState
+    extends State<DetailKeluhanPage> {
+
+  late TextEditingController tanggapanController;
+
+  String selectedStatus = "Menunggu";
+
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final data =
+        widget.keluhanDoc.data() as Map<String, dynamic>;
+
+    selectedStatus =
+        data["status"] ?? "Menunggu";
+
+    tanggapanController =
+        TextEditingController(
+      text: data["tanggapan"] ?? "",
+    );
+  }
+
+  Future<void> simpanTanggapan() async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
+
+      await FirebaseFirestore.instance
+          .collection("keluhan")
+          .doc(widget.keluhanDoc.id)
+          .update({
+        "status": selectedStatus,
+        "tanggapan":
+            tanggapanController.text.trim(),
+      });
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content:
+              Text("Tanggapan berhasil disimpan"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      widget.onBack();
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final data =
+        widget.keluhanDoc.data()
+            as Map<String, dynamic>;
+
     return Material(
       color: const Color(0xfff5f7fb),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
           children: [
 
-            // 🔥 HEADER
             Row(
               children: [
                 IconButton(
-                  onPressed: onBack,
-                  icon: const Icon(Icons.arrow_back),
+                  onPressed: widget.onBack,
+                  icon:
+                      const Icon(Icons.arrow_back),
                 ),
                 const SizedBox(width: 10),
                 const Text(
                   "Manajemen Keluhan Pelanggan",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 10),
-
-            const Text(
-              "Tanggapan & Resolusi Keluhan",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 5),
-
-            const Text(
-              "Review pesan pelanggan dan berikan solusi tindak lanjut secara profesional",
-              style: TextStyle(color: Colors.grey),
-            ),
-
             const SizedBox(height: 20),
 
-            // 🔥 CONTENT
             Expanded(
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: [
 
-                  // 🔥 KIRI - PESAN
+                  // KIRI
+
                   Expanded(
                     child: buildCard(
                       title: "PESAN PELANGGAN",
                       icon: Icons.message,
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment:
+                            CrossAxisAlignment
+                                .start,
                         children: [
 
-                          // 🔥 USER INFO
                           Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(8),
+                            padding:
+                                const EdgeInsets.all(
+                                    12),
+                            decoration:
+                                BoxDecoration(
+                              color: Colors
+                                  .grey.shade100,
+                              borderRadius:
+                                  BorderRadius
+                                      .circular(
+                                          8),
                             ),
                             child: Row(
-                              children: const [
-                                Icon(Icons.person, color: Colors.blue),
-                                SizedBox(width: 10),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text("Rizki Mahesa",
-                                        style: TextStyle(fontWeight: FontWeight.bold)),
-                                    Text("Mazda 3 HB | B 3214 CB",
-                                        style: TextStyle(color: Colors.grey)),
-                                  ],
-                                )
+                              children: [
+                                const Icon(
+                                  Icons.person,
+                                  color: Colors
+                                      .blue,
+                                ),
+                                const SizedBox(
+                                    width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment
+                                            .start,
+                                    children: [
+                                      Text(
+                                        data["nama"] ??
+                                            "",
+                                        style:
+                                            const TextStyle(
+                                          fontWeight:
+                                              FontWeight
+                                                  .bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        data["email"] ??
+                                            "",
+                                        style:
+                                            const TextStyle(
+                                          color: Colors
+                                              .grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
                           ),
 
-                          const SizedBox(height: 15),
+                          const SizedBox(
+                              height: 20),
 
-                          // 🔥 ISI KELUHAN
-                          Container(
-                            padding: const EdgeInsets.all(15),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              "“ Bunyi kasar pada area kaki kaki depan dan mesin melewati jalan bergelombang, terus ke mau rontok gitu ”",
+                          const Text(
+                            "Judul Keluhan",
+                            style: TextStyle(
+                              fontWeight:
+                                  FontWeight.bold,
                             ),
                           ),
 
-                          const SizedBox(height: 10),
+                          const SizedBox(
+                              height: 5),
 
-                          const Row(
-                            children: [
-                              Icon(Icons.calendar_today, size: 14),
-                              SizedBox(width: 5),
-                              Text("12 Februari 2026"),
-                              SizedBox(width: 15),
-                              Icon(Icons.access_time, size: 14),
-                              SizedBox(width: 5),
-                              Text("15:00 WIB"),
-                            ],
-                          )
+                          Text(
+                            data["judul"] ?? "",
+                          ),
+
+                          const SizedBox(
+                              height: 20),
+
+                          const Text(
+                            "Isi Keluhan",
+                            style: TextStyle(
+                              fontWeight:
+                                  FontWeight.bold,
+                            ),
+                          ),
+
+                          const SizedBox(
+                              height: 5),
+
+                          Container(
+                            width: double.infinity,
+                            padding:
+                                const EdgeInsets
+                                    .all(15),
+                            decoration:
+                                BoxDecoration(
+                              color: Colors
+                                  .grey.shade100,
+                              borderRadius:
+                                  BorderRadius
+                                      .circular(
+                                          8),
+                            ),
+                            child: Text(
+                              data["isi"] ?? "",
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -122,79 +247,103 @@ class DetailKeluhanPage extends StatelessWidget {
 
                   const SizedBox(width: 20),
 
-                  // 🔥 KANAN - TANGGAPAN
+                  // KANAN
+
                   Expanded(
                     child: buildCard(
-                      title: "UPDATE STATUS KELUHAN",
-                      icon: Icons.access_time,
+                      title:
+                          "UPDATE STATUS KELUHAN",
+                      icon:
+                          Icons.support_agent,
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment:
+                            CrossAxisAlignment
+                                .start,
                         children: [
 
-                          // 🔥 DROPDOWN
                           DropdownButtonFormField<String>(
-                            initialValue: "Sedang Proses", // 🔥 FIX
-                            items: const [
+                              initialValue: selectedStatus,
+                              items: const [
                               DropdownMenuItem(
-                                value: "Sedang Proses",
-                                child: Text("Sedang Proses"),
+                                value:
+                                    "Menunggu",
+                                child: Text(
+                                    "Menunggu"),
                               ),
                               DropdownMenuItem(
-                                value: "Selesai",
-                                child: Text("Selesai"),
+                                value:
+                                    "Sedang Proses",
+                                child: Text(
+                                    "Sedang Proses"),
+                              ),
+                              DropdownMenuItem(
+                                value:
+                                    "Selesai",
+                                child: Text(
+                                    "Selesai"),
                               ),
                             ],
-                            onChanged: (value) {},
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
+                            onChanged: (value) {
+                              setState(() {
+                                selectedStatus =
+                                    value!;
+                              });
+                            },
+                            decoration:
+                                const InputDecoration(
+                              border:
+                                  OutlineInputBorder(),
                             ),
                           ),
 
-                          const SizedBox(height: 15),
+                          const SizedBox(
+                              height: 15),
 
-                          // 🔥 TEXTAREA
                           TextField(
-                            maxLines: 5,
-                            decoration: InputDecoration(
+                            controller:
+                                tanggapanController,
+                            maxLines: 6,
+                            decoration:
+                                const InputDecoration(
                               hintText:
-                                  "Tuliskan evaluasi dan tanggapan disini ya...",
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
+                                  "Tulis tanggapan untuk pelanggan...",
+                              border:
+                                  OutlineInputBorder(),
                             ),
                           ),
 
-                          const SizedBox(height: 15),
+                          const SizedBox(
+                              height: 15),
 
-                          // 🔥 BUTTON
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  onPressed: onBack,
-                                  child: const Text("Batal"),
-                                ),
+                          SizedBox(
+                            width:
+                                double.infinity,
+                            child:
+                                ElevatedButton
+                                    .icon(
+                              style:
+                                  ElevatedButton
+                                      .styleFrom(
+                                backgroundColor:
+                                    Colors.blue,
+                                foregroundColor:
+                                    Colors.white,
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  onPressed: () {},
-                                  icon: const Icon(Icons.save),
-                                  label: const Text("Simpan Tanggapan"),
-                                ),
+                              onPressed:
+                                  isLoading
+                                      ? null
+                                      : simpanTanggapan,
+                              icon:
+                                  const Icon(
+                                Icons.save,
                               ),
-                            ],
-                          )
+                              label: Text(
+                                isLoading
+                                    ? "Menyimpan..."
+                                    : "Simpan Tanggapan",
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -208,7 +357,6 @@ class DetailKeluhanPage extends StatelessWidget {
     );
   }
 
-  // 🔥 CARD
   Widget buildCard({
     required String title,
     required IconData icon,
@@ -218,30 +366,36 @@ class DetailKeluhanPage extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius:
+            BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color:
+                Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
-          )
+          ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: Colors.blue),
+              Icon(icon,
+                  color: Colors.blue),
               const SizedBox(width: 8),
               Text(
                 title,
                 style: const TextStyle(
-                    fontWeight: FontWeight.bold),
+                  fontWeight:
+                      FontWeight.bold,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 15),
-          child
+          child,
         ],
       ),
     );
