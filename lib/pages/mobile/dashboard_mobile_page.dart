@@ -1,27 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // 👈 Tambahan: Untuk koneksi Firestore
+import 'package:intl/intl.dart'; // 👈 Tambahan: Untuk format rupiah otomatis
 import 'keluhan_mobile_page.dart'; 
 import 'servis_mobile_page.dart'; 
 import 'akun_mobile_page.dart';
 import 'detail_perawatan_page.dart';
 import 'semua_perawatan_page.dart';
-// import 'servis_mobile_page.dart'; // Buka komen ini jika file Servis sudah ada
-// import 'akun_mobile_page.dart';   // Buka komen ini jika file Akun sudah ada
+import 'katalog_barang_page.dart'; // 👈 Tambahan: Import halaman katalog barang
 
 class DashboardMobilePage extends StatelessWidget {
   const DashboardMobilePage({super.key});
+
+  // 🔥 LOGIKA GAMBAR PINTAR: Mencocokkan kategori dari database admin dengan aset gambar lokal kamu
+  String _getGambarKategori(String kategori) {
+    switch (kategori) {
+      case "Oli":
+        return "assets/oli_gardan.png"; // 👈 Sesuaikan dengan path aset oli kamu
+      case "Filter":
+        return "assets/primaxp.png";    // 👈 Sesuaikan dengan path aset filter kamu
+      case "Kampas":
+        return "assets/minyak_rem.png"; // 👈 Sesuaikan dengan path aset kampas kamu
+      default:
+        return "assets/shell_yellow.png"; // Gambar cadangan jika tidak ada yang cocok
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
-    // 8 Data Menu Layanan Orisinal Sesuai Kodingan Anda
-   // 8 Data Menu Layanan Lengkap dengan Detail Konten Dinamis
+    // 8 Data Menu Layanan Lengkap dengan Detail Konten Dinamis
     final List<Map<String, dynamic>> layanan = [
       {
         "icon": Icons.build_circle, 
         "title": "Tune Up & Scanning Mesin",
-        "image": "assets/tuneup.png", // Taruh gambarmu di assets jika ada
+        "image": "assets/tuneup.png", 
         "deskripsi": "Tune Up adalah proses standarisasi kembali kondisi mesin kendaraan Anda agar tetap prima. Melalui pemeriksaan menyeluruh, pembersihan sistem pembakaran, dan diagnosa sensor (scanning), Tune Up bertujuan mengembalikan efisiensi bahan bakar dan performa mesin yang mulai menurun akibat pemakaian harian.",
         "estimasi": "2 - 3 Jam",
         "garansi": "1 Bulan / 1.000 Km",
@@ -97,7 +111,6 @@ class DashboardMobilePage extends StatelessWidget {
       {
         "icon": Icons.feedback, 
         "title": "Keluhan",
-        // Menu Keluhan punya penanganan navigasi tersendiri (ke file keluhan)
         "estimasi": "-", "garansi": "-", "interval": "-", "harga": "-", "pekerjaan": []
       },
       {
@@ -231,7 +244,6 @@ class DashboardMobilePage extends StatelessWidget {
                       onTap: () {
                         final title = layanan[index]["title"];
                         
-                        // 1. Navigasi khusus Menu Keluhan ke KeluhanMobilePage
                         if (title == "Keluhan") {
                           Navigator.push(
                             context,
@@ -240,7 +252,6 @@ class DashboardMobilePage extends StatelessWidget {
                             ),
                           );
                         } 
-                        // 2. Navigasi khusus Menu Lainnya ke SemuaPerawatanPage
                         else if (title == "Lainnya") {
                           Navigator.push(
                             context,
@@ -249,7 +260,6 @@ class DashboardMobilePage extends StatelessWidget {
                             ),
                           );
                         }
-                        // 3. Menu perawatan satuan langsung oper ke DetailPerawatanPage
                         else {
                           Navigator.push(
                             context,
@@ -290,50 +300,133 @@ class DashboardMobilePage extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // ================= KATALOG BARANG =================
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12),
-                child: Row(
-                  children: [
-                    Text(
-                      "Katalog Barang",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+              // ================= KATALOG BARANG (KLIK LANGSUNG PINDAH HALAMAN) =================
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Align(
+                  alignment: Alignment.centerLeft, // 👈 Memaksa seluruh isi Row di bawahnya mentok ke kiri
+                  child: GestureDetector(
+                    onTap: () {
+                      // 🚀 SAAT DIPENCET: Pindah otomatis ke halaman penuh katalog
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const KatalogBarangPage()),
+                      );
+                    },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min, // Agar area klik hanya sebatas tulisan dan panah saja
+                      children: [
+                        const Text(
+                          "Katalog Barang",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Icon(Icons.arrow_forward, color: Colors.blue.shade800, size: 20), // Sedikit sentuhan warna biru biar senada
+                      ],
                     ),
-                    SizedBox(width: 5),
-                    Icon(Icons.arrow_forward),
-                  ],
+                  ),
                 ),
               ),
 
               const SizedBox(height: 10),
 
+              // ================= HORIZONTAL LIST DATA NYAMBUNG FIREBASE =================
               SizedBox(
-                height: 180,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: const [
-                    ProductCard(
-                      nama: "Oli Mesin Shell",
-                      harga: "Rp. 399.000",
-                    ),
-                    ProductCard(
-                      nama: "Oli Helix",
-                      harga: "Rp. 299.000",
-                    ),
-                    ProductCard(
-                      nama: "Pertamina Fastron",
-                      harga: "Rp. 299.000",
-                    ),
-                  ],
+                height: 190, // Dinaikkan sedikit ke 190 agar border biru bawah tidak terpotong
+                child: StreamBuilder<QuerySnapshot>(
+                  // Mengambil data sparepart real-time yang diinput oleh Farid di Admin
+                  stream: FirebaseFirestore.instance.collection('sparepart').snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          "Belum ada produk dari admin",
+                          style: TextStyle(color: Colors.grey, fontSize: 13),
+                        ),
+                      );
+                    }
+
+                    final docs = snapshot.data!.docs;
+
+                    return ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      itemCount: docs.length,
+                      itemBuilder: (context, index) {
+                        final data = docs[index].data() as Map<String, dynamic>;
+                        
+                        String kategoriBarang = data['kategori'] ?? "Oli";
+                        String namaBarang = data['nama'] ?? "-";
+                        int hargaJual = data['harga_jual'] ?? 0;
+                        
+                        // Format mata uang Rupiah
+                        final formatRupiah = NumberFormat.currency(
+                          locale: 'id_ID', 
+                          symbol: 'Rp. ', 
+                          decimalDigits: 0,
+                        );
+
+                        return Container(
+                          width: 130,
+                          margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(color: Colors.blue, width: 1.5), // Sesuai mockup ber-border biru
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Gambar pintar otomatis menyedot dari logika kategori diatas
+                              Expanded(
+                                child: Image.asset(
+                                  _getGambarKategori(kategoriBarang),
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Icon(
+                                      Icons.oil_barrel,
+                                      size: 45,
+                                      color: Colors.orange,
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                namaBarang,
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                formatRupiah.format(hargaJual),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
 
               const SizedBox(height: 25),
 
-              // 🔵 KONTEN INFORMASI BENGKEL (SETEMA BIRU-PUTIH)
+              // ================= KONTEN INFORMASI BENGKEL =================
               Container(
                 width: double.infinity,
                 margin: const EdgeInsets.all(12),
@@ -354,7 +447,6 @@ class DashboardMobilePage extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Alamat Sukarame Baru Anda
                         Expanded(
                           flex: 5,
                           child: Column(
@@ -382,8 +474,6 @@ class DashboardMobilePage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 16),
-                        
-                        // Kontak Sukarame Baru Anda
                         Expanded(
                           flex: 4,
                           child: Column(
@@ -426,7 +516,6 @@ class DashboardMobilePage extends StatelessWidget {
                     Divider(color: Colors.grey.shade200, height: 1),
                     const SizedBox(height: 12),
 
-                    // Copyright & Info Logged In User
                     Center(
                       child: Column(
                         children: [
@@ -461,23 +550,23 @@ class DashboardMobilePage extends StatelessWidget {
 
       // ================= BOTTOM NAVIGATION =================
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0, // Beranda selalu aktif sebagai index 0 di file ini
+        currentIndex: 0, 
         selectedItemColor: Colors.blue.shade800,
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
         onTap: (index) {
-  if (index == 1) {
-    Navigator.push(
-      context, 
-      MaterialPageRoute(builder: (_) => const ServisMobilePage()),
-    );
-  } else if (index == 2) {
-    Navigator.push(
-      context, 
-      MaterialPageRoute(builder: (_) => const AkunMobilePage()),
-    );
-  }
-},
+          if (index == 1) {
+            Navigator.push(
+              context, 
+              MaterialPageRoute(builder: (_) => const ServisMobilePage()),
+            );
+          } else if (index == 2) {
+            Navigator.push(
+              context, 
+              MaterialPageRoute(builder: (_) => const AkunMobilePage()),
+            );
+          }
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -490,56 +579,6 @@ class DashboardMobilePage extends StatelessWidget {
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: "Akun",
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ================= PRODUCT CARD =================
-
-class ProductCard extends StatelessWidget {
-  final String nama;
-  final String harga;
-
-  const ProductCard({
-    super.key,
-    required this.nama,
-    required this.harga,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 130,
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.blue),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.oil_barrel,
-            size: 50,
-            color: Colors.orange,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            nama,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            harga,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-            ),
           ),
         ],
       ),
