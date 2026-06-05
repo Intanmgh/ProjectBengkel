@@ -117,8 +117,8 @@ class _SparepartPageState extends State<SparepartPage> {
                           ),
                           columnSpacing: 25,
                           headingRowHeight: 45,
-                          dataRowMinHeight: 45,
-                          dataRowMaxHeight: 55,
+                          dataRowMinHeight: 70,
+                          dataRowMaxHeight: 70,
                           headingRowColor: WidgetStateProperty.all(
                               Colors.grey.shade300),
                           headingTextStyle: const TextStyle(
@@ -128,6 +128,7 @@ class _SparepartPageState extends State<SparepartPage> {
 
                           columns: const [
                             DataColumn(label: Text("NO")),
+                            DataColumn(label: Text("FOTO")),
                             DataColumn(label: Text("NAMA")),
                             DataColumn(label: Text("KATEGORI")),
                             DataColumn(label: Text("KODE")),
@@ -144,10 +145,39 @@ class _SparepartPageState extends State<SparepartPage> {
                             int stok = data['stok'] ?? 0;
                             int minStok = data['min_stok'] ?? 0;
 
-                            return DataRow(cells: [
+                            debugPrint("NAMA = ${data['nama']}");
+                            debugPrint("FOTO = ${data['foto_url']}");
+
+                            return DataRow(
+                              cells: [
 
                               DataCell(Text("${index + 1}")),
+
+                              DataCell(
+                                Container(
+                                  width: 50,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: Colors.grey.shade300),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Image.network(
+                                      data['foto_url'] ?? '',
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return const Icon(Icons.image_not_supported);
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+
+
                               DataCell(Text(data['nama'] ?? "")),
+
                               DataCell(Text(data['kategori'] ?? "")),
 
                               DataCell(
@@ -207,7 +237,7 @@ class _SparepartPageState extends State<SparepartPage> {
 
                                     const SizedBox(width: 6),
 
-                                    // 🗑 DELETE
+                                    // 🗑️ DELETE
                                     GestureDetector(
                                       onTap: () async {
                                         await FirebaseFirestore.instance

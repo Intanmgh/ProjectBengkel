@@ -9,7 +9,6 @@ import 'detail_perawatan_page.dart';
 import 'semua_perawatan_page.dart';
 import 'katalog_barang_page.dart'; 
 
-// 🔥 SEKARANG DIUBAH MENJADI STATEFULWIDGET AGAR SEARCH BAR BISA MERESPONS KETIKAN LIVE
 class DashboardMobilePage extends StatefulWidget {
   const DashboardMobilePage({super.key});
 
@@ -18,11 +17,10 @@ class DashboardMobilePage extends StatefulWidget {
 }
 
 class _DashboardMobilePageState extends State<DashboardMobilePage> {
-  // Controller dan Variabel untuk menampung teks pencarian jenis perawatan
   final TextEditingController _searchLayananController = TextEditingController();
   String _keywordLayanan = "";
 
-  // 🔥 LOGIKA GAMBAR AMAN: Kembali ke gambar bawaan agar tidak memicu eror silang merah
+  // Logika gambar aset lokal sebagai cadangan jika link URL internet dari admin bermasalah
   String _getGambarKategori(String kategori) {
     return "assets/shell_yellow.png"; 
   }
@@ -130,7 +128,6 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
-    // 🔥 LOGIKA FILTER: Menyaring list menu lokal berdasarkan inputan teks di Search Bar
     final List<Map<String, dynamic>> layananTerfilter = layanan.where((item) {
       final String judulLayanan = item["title"].toString().toLowerCase();
       return judulLayanan.contains(_keywordLayanan);
@@ -189,20 +186,19 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
                 ),
               ),
 
-              // ================= SEARCH BAR (AKTIF & BERFUNGSI) =================
+              // ================= SEARCH BAR =================
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: TextField(
                   controller: _searchLayananController,
                   onChanged: (value) {
                     setState(() {
-                      _keywordLayanan = value.toLowerCase(); // Re-render widget tiap ada ketikan baru
+                      _keywordLayanan = value.toLowerCase();
                     });
                   },
                   decoration: InputDecoration(
                     hintText: "Cari Nama Layanan Perawatan...",
                     prefixIcon: const Icon(Icons.search, color: Colors.blue),
-                    // Menampilkan tombol 'X' pembersih teks jika kolom tidak kosong
                     suffixIcon: _searchLayananController.text.isNotEmpty
                         ? IconButton(
                             icon: const Icon(Icons.clear, color: Colors.grey),
@@ -241,7 +237,7 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
 
               const SizedBox(height: 10),
 
-              // ================= GRID MENU LAYANAN (TERFILTER NYATA) =================
+              // ================= GRID MENU LAYANAN =================
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: layananTerfilter.isEmpty
@@ -260,7 +256,7 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
                     : GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: layananTerfilter.length, // Menyesuaikan jumlah item terfilter
+                        itemCount: layananTerfilter.length,
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 4,
                           childAspectRatio: 0.9,
@@ -354,7 +350,7 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
 
               const SizedBox(height: 10),
 
-              // ================= HORIZONTAL LIST DATA FIREBASE =================
+              // ================= HORIZONTAL LIST DATA FIREBASE (UPDATED IMAGES) =================
               SizedBox(
                 height: 190, 
                 child: StreamBuilder<QuerySnapshot>(
@@ -382,13 +378,23 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
                       itemBuilder: (context, index) {
                         final data = docs[index].data() as Map<String, dynamic>;
                         
-                        String kategoriBarang = data['kategori'] ?? "Oli";
+                        String kategoriBarang = data['kategori'] ?? "Oli & Cairan";
                         String namaBarang = data['nama'] ?? "-";
-                        int hargaJual = data['harga_jual'] ?? 0;
                         
+                        // Proteksi Multi-Type untuk tipe data int/string/num dari Firestore
+                        int hargaJual = 0;
+                        if (data['harga_jual'] != null) {
+                          hargaJual = (data['harga_jual'] is String)
+                              ? int.tryParse(data['harga_jual']) ?? 0
+                              : (data['harga_jual'] as num).toInt();
+                        }
+                        
+                        // ✅ SINKRONISASI: Mengambil field URL gambar 'foto_url' dari admin
+                        String? urlGambar = data['foto_url'];
+
                         final formatRupiah = NumberFormat.currency(
                           locale: 'id_ID', 
-                          symbol: 'Rp. ', 
+                          symbol: 'Rp ', 
                           decimalDigits: 0,
                         );
 
@@ -404,14 +410,36 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
+                              // Menampilkan Gambar Network secara real-time atau Fallback Asset jika kosong
                               Expanded(
-                                child: Image.asset(
-                                  _getGambarKategori(kategoriBarang), 
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return const Icon(Icons.oil_barrel, size: 45, color: Colors.orange);
-                                  },
-                                ),
+                                child: urlGambar != null && urlGambar.isNotEmpty && urlGambar.startsWith('http')
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(10),
+                                        child: Image.network(
+                                          urlGambar,
+                                          fit: BoxFit.cover, // Diubah menjadi cover agar rapi mengisi kotak preview horizontal
+                                          loadingBuilder: (context, child, loadingProgress) {
+                                            if (loadingProgress == null) return child;
+                                            return const Center(
+                                              child: SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child: CircularProgressIndicator(strokeWidth: 2),
+                                              ),
+                                            );
+                                          },
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Icon(Icons.broken_image, size: 40, color: Colors.red.shade300);
+                                          },
+                                        ),
+                                      )
+                                    : Image.asset(
+                                        _getGambarKategori(kategoriBarang), 
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return const Icon(Icons.oil_barrel, size: 40, color: Colors.orange);
+                                        },
+                                      ),
                               ),
                               const SizedBox(height: 10),
                               Text(
@@ -424,7 +452,7 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
                               const SizedBox(height: 5),
                               Text(
                                 formatRupiah.format(hargaJual),
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black),
                               ),
                             ],
                           ),

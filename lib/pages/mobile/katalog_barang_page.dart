@@ -13,20 +13,31 @@ class _KatalogBarangPageState extends State<KatalogBarangPage> {
   String _searchQuery = "";
   String _selectedKategori = "Semua";
 
-  // List kategori disesuaikan dengan dropdown milik admin + pilihan "Semua"
-  final List<String> kategoriList = ["Semua", "Oli", "Filter", "Kampas"];
+  // 🛠️ List kategori DISINKRONKAN dengan dropdown milik admin + pilihan "Semua"
+  final List<String> kategoriList = [
+    "Semua", 
+    "Oli & Cairan", 
+    "Filter", 
+    "Rem & Kaki-kaki", 
+    "Mesin & Pengapian", 
+    "Kelistrikan & Aki"
+  ];
 
   // Format Rupiah bawaan agar tampilan harga rapi seperti di admin
   final formatRupiah = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
-  // Logika gambar aset lokal mobile kamu
+  // Logika gambar aset lokal sebagai cadangan jika admin tidak upload gambar atau tautan rusak
   String _getGambarKategori(String kategori) {
     switch (kategori) {
-      case "Oli":
+      case "Oli & Cairan":
         return "assets/shell_yellow.png"; 
       case "Filter":
         return "assets/shell_yellow.png";    
-      case "Kampas":
+      case "Rem & Kaki-kaki":
+        return "assets/shell_yellow.png"; 
+      case "Mesin & Pengapian":
+        return "assets/shell_yellow.png"; 
+      case "Kelistrikan & Aki":
         return "assets/shell_yellow.png"; 
       default:
         return "assets/shell_yellow.png"; 
@@ -94,23 +105,23 @@ class _KatalogBarangPageState extends State<KatalogBarangPage> {
                     Expanded(
                       flex: 2,
                       child: DropdownButtonHideUnderline(
-                        child: DropdownButtonFormField<String>(
+                        child: DropdownButton<String>(
                           value: _selectedKategori,
                           isExpanded: true,
-                          alignment: Alignment.centerRight,
                           icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
-                          decoration: const InputDecoration(border: InputBorder.none),
                           style: const TextStyle(fontSize: 12, color: Colors.black87),
                           items: kategoriList.map((String kat) {
                             return DropdownMenuItem<String>(
                               value: kat,
-                              child: Text(kat, textAlign: TextAlign.right),
+                              child: Text(kat),
                             );
                           }).toList(),
                           onChanged: (String? newVal) {
-                            setState(() {
-                              _selectedKategori = newVal ?? "Semua";
-                            });
+                            if (newVal != null) {
+                              setState(() {
+                                _selectedKategori = newVal;
+                              });
+                            }
                           },
                         ),
                       ),
@@ -138,11 +149,10 @@ class _KatalogBarangPageState extends State<KatalogBarangPage> {
 
                     final docs = snapshot.data!.docs;
 
-                    // 🔥 PERBAIKAN UTAMA: Mengubah logika penyaringan di memori lokal HP
+                    // Mengubah logika penyaringan di memori lokal HP
                     final listProdukTerfilter = docs.where((doc) {
                       final data = doc.data() as Map<String, dynamic>;
                       
-                      // Tarik data nama dan kategori dari Firestore, lalu ubah ke huruf kecil
                       final String nama = (data['nama'] ?? "").toString().toLowerCase();
                       final String kategori = (data['kategori'] ?? "").toString().toLowerCase();
 
@@ -150,7 +160,7 @@ class _KatalogBarangPageState extends State<KatalogBarangPage> {
                       final cocokDropdownKategori = _selectedKategori == "Semua" || 
                           kategori == _selectedKategori.toLowerCase();
                           
-                      // 🔥 LOGIKA BARU: Kolom ketik bisa membaca kecocokan pada Nama ATAU Kategori
+                      // Logika Kolom ketik
                       final cocokKetikSearch = nama.contains(_searchQuery) || 
                           kategori.contains(_searchQuery);
 
@@ -168,16 +178,26 @@ class _KatalogBarangPageState extends State<KatalogBarangPage> {
                       itemCount: listProdukTerfilter.length,
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
-                        childAspectRatio: 0.75,
+                        childAspectRatio: 0.76,
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
                       ),
                       itemBuilder: (context, index) {
                         final data = listProdukTerfilter[index].data() as Map<String, dynamic>;
                         
-                        String kategoriBarang = data['kategori'] ?? "Oli";
+                        String kategoriBarang = data['kategori'] ?? "Oli & Cairan";
                         String namaBarang = data['nama'] ?? "-";
-                        int hargaJual = data['harga_jual'] ?? 0;
+                        
+                        // Proteksi Multi-Type untuk Harga Jual dari Admin
+                        int hargaJual = 0;
+                        if (data['harga_jual'] != null) {
+                          hargaJual = (data['harga_jual'] is String) 
+                              ? int.tryParse(data['harga_jual']) ?? 0 
+                              : (data['harga_jual'] as num).toInt();
+                        }
+
+                        // ✅ DISINKRONKAN: Mengambil field 'foto_url' sesuai dengan penyimpanan database di halaman admin
+                        String? urlGambar = data['foto_url'];
 
                         return Container(
                           decoration: BoxDecoration(
@@ -189,15 +209,37 @@ class _KatalogBarangPageState extends State<KatalogBarangPage> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // Menampilkan gambar pintar berdasarkan kategori data admin
+                              // Menampilkan Gambar Network atau Fallback Asset Lokal jika kosong
                               Expanded(
-                                child: Image.asset(
-                                  _getGambarKategori(kategoriBarang),
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Icon(Icons.build_circle, size: 60, color: Colors.blue.shade300);
-                                  },
-                                ),
+                                child: urlGambar != null && urlGambar.isNotEmpty && urlGambar.startsWith('http')
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Image.network(
+                                          urlGambar,
+                                          fit: BoxFit.cover, // Diubah ke cover agar visual gambar di grid memenuhi ruang card dengan rapi
+                                          loadingBuilder: (context, child, loadingProgress) {
+                                            if (loadingProgress == null) return child;
+                                            return const Center(
+                                              child: SizedBox(
+                                                width: 24,
+                                                height: 24,
+                                                child: CircularProgressIndicator(strokeWidth: 2),
+                                              ),
+                                            );
+                                          },
+                                          errorBuilder: (context, error, stackTrace) {
+                                            // Jika link URL gambar rusak/error, tampilkan icon warning yang informatif
+                                            return Icon(Icons.broken_image, size: 45, color: Colors.red.shade300);
+                                          },
+                                        ),
+                                      )
+                                    : Image.asset(
+                                        _getGambarKategori(kategoriBarang),
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Icon(Icons.build_circle, size: 45, color: Colors.blue.shade300);
+                                        },
+                                      ),
                               ),
                               const SizedBox(height: 8),
                               // Nama Barang asli inputan admin
