@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'tambah_manajemen_akun_page.dart';
 
@@ -16,14 +17,102 @@ class _ManajemenAkunPageState
   final TextEditingController searchController =
       TextEditingController();
 
+  // ================= RESET PASSWORD =================
+
+  Future<void> resetPassword(String email) async {
+    try {
+      await FirebaseAuth.instance
+          .sendPasswordResetEmail(email: email);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Link reset password telah dikirim ke $email",
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Gagal kirim reset password: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // ================= HAPUS AKUN =================
+
+  Future<void> hapusAkun(String docId) async {
+
+    // KONFIRMASI SEBELUM HAPUS
+    final konfirmasi = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Hapus Akun"),
+        content: const Text(
+          "Apakah kamu yakin ingin menghapus akun ini?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Batal"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Hapus"),
+          ),
+        ],
+      ),
+    );
+
+    if (konfirmasi != true) return;
+
+    try {
+      // Hapus dari Firestore
+      await FirebaseFirestore.instance
+          .collection('manajemen_akun')
+          .doc(docId)
+          .delete();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Akun berhasil dihapus"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Gagal hapus akun: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
 
     return SingleChildScrollView(
 
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
 
         children: [
 
@@ -31,7 +120,6 @@ class _ManajemenAkunPageState
 
           const Text(
             "Manajemen Akun",
-
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
@@ -42,10 +130,7 @@ class _ManajemenAkunPageState
 
           const Text(
             "Kelola informasi akun admin bengkel",
-
-            style: TextStyle(
-              color: Colors.grey,
-            ),
+            style: TextStyle(color: Colors.grey),
           ),
 
           const SizedBox(height: 25),
@@ -53,40 +138,27 @@ class _ManajemenAkunPageState
           // ================= SEARCH + BUTTON =================
 
           Row(
-            mainAxisAlignment:
-                MainAxisAlignment.spaceBetween,
-
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
 
               SizedBox(
                 width: 300,
-
                 child: TextField(
                   controller: searchController,
-
+                  onChanged: (value) => setState(() {}),
                   decoration: InputDecoration(
                     hintText: "Cari akun admin...",
-
-                    prefixIcon:
-                        const Icon(Icons.search),
-
+                    prefixIcon: const Icon(Icons.search),
                     filled: true,
                     fillColor: Colors.white,
-
                     border: OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(8),
-
+                      borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide(
                         color: Colors.grey.shade300,
                       ),
                     ),
-
-                    enabledBorder:
-                        OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(8),
-
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide(
                         color: Colors.grey.shade300,
                       ),
@@ -99,29 +171,20 @@ class _ManajemenAkunPageState
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
-
-                  padding:
-                      const EdgeInsets.symmetric(
+                  padding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 18,
                   ),
                 ),
-
                 onPressed: () {
-
                   showDialog(
                     context: context,
-
                     builder: (context) =>
                         const TambahManajemenAkunPage(),
                   );
                 },
-
                 icon: const Icon(Icons.add),
-
-                label: const Text(
-                  "Tambah Akun",
-                ),
+                label: const Text("Tambah Akun"),
               ),
             ],
           ),
@@ -131,61 +194,69 @@ class _ManajemenAkunPageState
           // ================= TABLE =================
 
           Container(
-            padding:
-                const EdgeInsets.all(10),
-
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: Colors.white,
-
-              borderRadius:
-                  BorderRadius.circular(8),
-
-              border: Border.all(
-                color: Colors.grey.shade400,
-              ),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade400),
             ),
 
             child: LayoutBuilder(
-              builder:
-                  (context, constraints) {
+              builder: (context, constraints) {
 
                 return SingleChildScrollView(
-                  scrollDirection:
-                      Axis.horizontal,
+                  scrollDirection: Axis.horizontal,
 
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
-                      minWidth:
-                          constraints.maxWidth,
+                      minWidth: constraints.maxWidth,
                     ),
 
                     child: StreamBuilder(
-
-                      stream: FirebaseFirestore
-                          .instance
-                          .collection(
-                              'manajemen_akun')
+                      stream: FirebaseFirestore.instance
+                          .collection('manajemen_akun')
+                          .orderBy('created_at', descending: false)
                           .snapshots(),
 
-                      builder:
-                          (context, snapshot) {
+                      builder: (context, snapshot) {
 
                         if (!snapshot.hasData) {
-
                           return const Center(
-                            child:
-                                CircularProgressIndicator(),
+                            child: CircularProgressIndicator(),
                           );
                         }
 
-                        final akunList =
-                            snapshot.data!.docs;
+                        // ================= FILTER SEARCH =================
+                        final query =
+                            searchController.text.toLowerCase();
+
+                        final filteredList =
+                            snapshot.data!.docs.where((data) {
+                          final nama =
+                              data['nama'].toString().toLowerCase();
+                          final email =
+                              data['email'].toString().toLowerCase();
+                          return nama.contains(query) ||
+                              email.contains(query);
+                        }).toList();
+
+                        // ================= EMPTY STATE =================
+                        if (filteredList.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.all(40),
+                            child: Center(
+                              child: Text(
+                                "Tidak ada akun ditemukan",
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ),
+                          );
+                        }
 
                         return DataTable(
 
                           border: TableBorder.all(
-                            color:
-                                Colors.grey.shade400,
+                            color: Colors.grey.shade400,
                           ),
 
                           columnSpacing: 25,
@@ -193,178 +264,140 @@ class _ManajemenAkunPageState
                           dataRowMinHeight: 45,
                           dataRowMaxHeight: 55,
 
-                          headingRowColor:
-                              WidgetStateProperty.all(
+                          headingRowColor: WidgetStateProperty.all(
                             Colors.grey.shade300,
                           ),
 
-                          headingTextStyle:
-                              const TextStyle(
-                            fontWeight:
-                                FontWeight.bold,
+                          headingTextStyle: const TextStyle(
+                            fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),
 
                           columns: const [
-
-                            DataColumn(
-                              label: Text("NO"),
-                            ),
-
-                            DataColumn(
-                              label: Text("NAMA"),
-                            ),
-
-                            DataColumn(
-                              label: Text("EMAIL"),
-                            ),
-
-                            DataColumn(
-                              label: Text("ROLE"),
-                            ),
-
-                            DataColumn(
-                              label: Text(
-                                "TANGGAL DIBUAT",
-                              ),
-                            ),
-
-                            DataColumn(
-                              label: Text("AKSI"),
-                            ),
+                            DataColumn(label: Text("NO")),
+                            DataColumn(label: Text("NAMA")),
+                            DataColumn(label: Text("EMAIL")),
+                            DataColumn(label: Text("ROLE")),
+                            DataColumn(label: Text("TANGGAL DIBUAT")),
+                            DataColumn(label: Text("AKSI")),
                           ],
 
                           rows: List.generate(
-                            akunList.length,
-
+                            filteredList.length,
                             (index) {
 
-                              final data =
-                                  akunList[index];
+                              final data = filteredList[index];
+
+                                String role = 'admin';
+
+                                if (data.data().containsKey('role')) {
+                                  role = data['role'];
+                                }
+
+                              // FORMAT TANGGAL
+                              String tanggal = "-";
+                              if (data['created_at'] != null) {
+                                final date =
+                                    data['created_at'].toDate();
+                                tanggal =
+                                    "${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}";
+                              }
 
                               return DataRow(
                                 cells: [
 
-                                  DataCell(
-                                    Text(
-                                      "${index + 1}",
-                                    ),
-                                  ),
+                                  DataCell(Text("${index + 1}")),
 
                                   DataCell(
-                                    Text(
-                                      data['nama'] ??
-                                          "",
-                                    ),
+                                    Text(data['nama'] ?? "-"),
                                   ),
 
                                   DataCell(
-                                    Text(
-                                      data['email'] ??
-                                          "",
-                                    ),
-                                  ),
-
-                                  const DataCell(
-                                    Text("Admin"),
+                                    Text(data['email'] ?? "-"),
                                   ),
 
                                   DataCell(
-                                    Text(
-
-                                      data[
-                                                  'created_at'] !=
-                                              null
-
-                                          ? "${data['created_at'].toDate().day}-${data['created_at'].toDate().month}-${data['created_at'].toDate().year}"
-
-                                          : "-",
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: role == 'admin'
+                                            ? Colors.blue.shade100
+                                            : Colors.orange.shade100,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        role == 'admin'
+                                            ? 'Admin'
+                                            : 'Montir',
+                                        style: TextStyle(
+                                          color: role == 'admin'
+                                              ? Colors.blue
+                                              : Colors.orange,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ),
                                   ),
+                                  DataCell(Text(tanggal)),
 
                                   // ================= AKSI =================
-
                                   DataCell(
-
                                     Row(
                                       children: [
 
                                         // 🔑 RESET PASSWORD
-
-                                        GestureDetector(
-                                          onTap: () {},
-
-                                          child: Container(
-                                            padding:
-                                                const EdgeInsets
-                                                    .all(4),
-
-                                            decoration:
-                                                BoxDecoration(
-                                              color: Colors
-                                                  .blue
-                                                  .shade100,
-
-                                              borderRadius:
-                                                  BorderRadius
-                                                      .circular(
-                                                4,
-                                              ),
+                                        Tooltip(
+                                          message: "Reset Password",
+                                          child: GestureDetector(
+                                            onTap: () => resetPassword(
+                                              data['email'],
                                             ),
-
-                                            child:
-                                                const Icon(
-                                              Icons.key,
-                                              size: 16,
-                                              color:
-                                                  Colors.blue,
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.all(6),
+                                              decoration: BoxDecoration(
+                                                color:
+                                                    Colors.blue.shade100,
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                  4,
+                                                ),
+                                              ),
+                                              child: const Icon(
+                                                Icons.key,
+                                                size: 16,
+                                                color: Colors.blue,
+                                              ),
                                             ),
                                           ),
                                         ),
 
-                                        const SizedBox(
-                                            width: 8),
+                                        const SizedBox(width: 8),
 
-                                        // 🗑 DELETE
-
-                                        GestureDetector(
-
-                                          onTap:
-                                              () async {
-
-                                            await FirebaseFirestore
-                                                .instance
-                                                .collection(
-                                                    'manajemen_akun')
-                                                .doc(
-                                                    data.id)
-                                                .delete();
-                                          },
-
-                                          child: Container(
-                                            padding:
-                                                const EdgeInsets
-                                                    .all(4),
-
-                                            decoration:
-                                                BoxDecoration(
-                                              color: Colors
-                                                  .red
-                                                  .shade100,
-
-                                              borderRadius:
-                                                  BorderRadius
-                                                      .circular(
-                                                4,
+                                        // 🗑️ HAPUS
+                                        Tooltip(
+                                          message: "Hapus Akun",
+                                          child: GestureDetector(
+                                            onTap: () =>
+                                                hapusAkun(data.id),
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.all(6),
+                                              decoration: BoxDecoration(
+                                                color: Colors.red.shade100,
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                  4,
+                                                ),
                                               ),
-                                            ),
-
-                                            child:
-                                                const Icon(
-                                              Icons.delete,
-                                              size: 16,
-                                              color:
-                                                  Colors.red,
+                                              child: const Icon(
+                                                Icons.delete,
+                                                size: 16,
+                                                color: Colors.red,
+                                              ),
                                             ),
                                           ),
                                         ),
