@@ -129,7 +129,7 @@ class _ManajemenAkunPageState
           const SizedBox(height: 5),
 
           const Text(
-            "Kelola informasi akun admin bengkel",
+            "Kelola informasi akun pengguna bengkel",
             style: TextStyle(color: Colors.grey),
           ),
 

@@ -70,6 +70,25 @@ class _TambahManajemenAkunPageState
         'role': selectedRole,
         'created_at': Timestamp.now(),
       });
+      if (selectedRole == 'montir') {
+        final montirDoc = await FirebaseFirestore.instance
+            .collection('montir')
+            .where(
+              'nama',
+              isEqualTo: namaController.text.trim(),
+            )
+            .limit(1)
+            .get();
+
+        if (montirDoc.docs.isNotEmpty) {
+          await FirebaseFirestore.instance
+              .collection('montir')
+              .doc(montirDoc.docs.first.id)
+              .update({
+            'uid_akun': credential.user!.uid,
+          });
+        }
+}
       if (!mounted) return;
 
       Navigator.pop(context);
