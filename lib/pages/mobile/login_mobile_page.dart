@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'register_mobile_page.dart';
 import 'dashboard_mobile_page.dart';
-// Note: Nantinya Anda bisa import dashboard_page atau halaman tracking khusus Anda di sini
+import 'dashboard_montir_page.dart';
 
 class LoginMobilePage extends StatefulWidget {
   const LoginMobilePage({super.key});
@@ -15,7 +15,7 @@ class LoginMobilePage extends StatefulWidget {
 class _LoginMobilePageState extends State<LoginMobilePage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  bool isLoading = false; // Tambahan agar tombol ada loading saat loading firebase
+  bool isLoading = false;
 
   Future<void> loginUser() async {
     if (emailController.text.trim().isEmpty || passwordController.text.trim().isEmpty) {
@@ -36,43 +36,92 @@ class _LoginMobilePageState extends State<LoginMobilePage> {
 
       String uid = userCredential.user!.uid;
 
-      // 2. Ambil Data Dokumen User dari Cloud Firestore Koleksi 'users'
-      // Note: Jika kawan Anda memakai nama koleksi berbeda (misal: 'pengguna'), ganti tulisan 'users' di bawah
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      // ================= 1. CEK KOLEKSI 'users' (PELANGGAN) =================
+      DocumentSnapshot pelangganDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
 
       if (!mounted) return;
 
-      if (userDoc.exists) {
-        // Ambil data role dari dalam dokumen
-        String role = userDoc.get('role') ?? 'pelanggan';
-
+      if (pelangganDoc.exists) {
+        // 🔒 Validasi isi role: Harus bertuliskan 'pelanggan'
+        String role = pelangganDoc.get('role') ?? '';
+        
         if (role == 'pelanggan') {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Login Sukses Sebagai Pelanggan!"), backgroundColor: Colors.green),
+            const SnackBar(
+              content: Text("Login Sukses Sebagai Pelanggan!"),
+              backgroundColor: Colors.green,
+            ),
           );
-          // ➡️ Diarahkan ke Dashboard Pelanggan
+
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => const DashboardMobilePage()), // Sementara ke dashboard utama dulu
+            MaterialPageRoute(
+              builder: (_) => const DashboardMobilePage(),
+            ),
           );
-        } else if (role == 'montir') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Login Sukses Sebagai Montir!"), backgroundColor: Colors.blue),
-          );
-          // ➡️ Nanti di sini kita arahkan ke Halaman Dashboard Montir khusus
-          // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DashboardMontirPage()));
+          return;
         }
-      } else {
-        // Kasus jika akun ada di Auth tapi data role-nya belum dibuat di Firestore
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Data pengguna tidak ditemukan di database Firestore!"), backgroundColor: Colors.orange),
-        );
       }
+
+      // ================= 2. CEK KOLEKSI 'manajemen_akun' (MONTIR / ADMIN LAIN) =================
+      DocumentSnapshot montirDoc = await FirebaseFirestore.instance
+          .collection('manajemen_akun')
+          .doc(uid)
+          .get();
+
+      if (!mounted) return;
+      
+      if (montirDoc.exists) {
+        String role = montirDoc.get('role') ?? '';
+
+        if (role == 'montir') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Login Sukses Sebagai Montir!"),
+              backgroundColor: Colors.blue,
+            ),
+          );
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const DashboardMontirPage(),
+            ),
+          );
+          return;
+        } else if (role == 'admin') {
+          // 🛑 Antisipasi jika admin login di aplikasi mobile, beri peringatan atau arahkan ke halaman khusus
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Akun Admin silakan gunakan sistem Web!"),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          await FirebaseAuth.instance.signOut(); // Logout otomatis karena salah tempat login
+          return;
+        }
+      }
+
+      // ================= 3. DATA DIDAPAT TAPI ROLE TIDAK COCOK / KOSONG =================
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Akses Ditolak: Peran akun tidak dikenali!"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      await FirebaseAuth.instance.signOut();
 
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login gagal: $e"), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text("Login gagal: $e"),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (mounted) {
@@ -81,7 +130,7 @@ class _LoginMobilePageState extends State<LoginMobilePage> {
     }
   }
 
- @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -92,12 +141,10 @@ class _LoginMobilePageState extends State<LoginMobilePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                
-                // 🔵 BAGIAN ATAS: Logo & Identitas (Tetap Proporsional)
                 Center(
                   child: Column(
                     children: [
-                      Image.asset('assets/logo.png', width: 300), // Sedikit diperkecil dari 160 ke 140
+                      Image.asset('assets/logo.png', width: 300), 
                       const SizedBox(height: 15),
                       const Text(
                         "JIMU MITSUBISHI",
@@ -112,47 +159,39 @@ class _LoginMobilePageState extends State<LoginMobilePage> {
                     ],
                   ),
                 ),
-
-                const SizedBox(height: 100), // Jarak ke area bawah diperkecil dari 40 ke 30
-
-                // ⚪ BAGIAN BAWAH: Diperkecil & Dirapatkan
+                const SizedBox(height: 100), 
                 const Text(
                   "Selamat Datang",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold), // Diperkecil dari 26 ke 22
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold), 
                 ),
                 const SizedBox(height: 4),
                 const Text(
                   "Silahkan masuk untuk mengelola aplikasi mobile",
-                  style: TextStyle(color: Colors.black54, fontSize: 13), // Diperkecil ke 13
+                  style: TextStyle(color: Colors.black54, fontSize: 13), 
                 ),
-                const SizedBox(height: 20), // Jarak diperkecil dari 30 ke 20
-
-                // KOTAK INPUT EMAIL
+                const SizedBox(height: 20), 
                 const Text(
                   "Alamat Email", 
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13), // Diperkecil ke 13
+                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13), 
                 ),
                 const SizedBox(height: 6),
                 TextField(
                   controller: emailController,
                   keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(fontSize: 14), // Ukuran teks ketikan lebih kecil
+                  style: const TextStyle(fontSize: 14), 
                   decoration: InputDecoration(
                     hintText: "nama@email.com",
-                    prefixIcon: const Icon(Icons.email, size: 20), // Icon diperkecil sedikit
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12), // Kolom lebih ramping
+                    prefixIcon: const Icon(Icons.email, size: 20), 
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12), 
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                 ),
-
-                const SizedBox(height: 14), // Jarak antar form diperkecil dari 20 ke 14
-
-                // KOTAK INPUT PASSWORD
+                const SizedBox(height: 14), 
                 const Text(
                   "Kata Sandi", 
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13), // Diperkecil ke 13
+                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13), 
                 ),
                 const SizedBox(height: 6),
                 TextField(
@@ -161,19 +200,16 @@ class _LoginMobilePageState extends State<LoginMobilePage> {
                   style: const TextStyle(fontSize: 14),
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.lock, size: 20),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12), // Kolom lebih ramping
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12), 
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                 ),
-
-                const SizedBox(height: 20), // Jarak ke tombol diperkecil dari 30 ke 20
-
-                // 🔥 TOMBOL LOGIN
+                const SizedBox(height: 20), 
                 SizedBox(
                   width: double.infinity,
-                  height: 42, // Tinggi tombol dibuat lebih ramping dari 48 ke 42
+                  height: 42, 
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue[800],
@@ -189,17 +225,13 @@ class _LoginMobilePageState extends State<LoginMobilePage> {
                             height: 18, 
                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
                           )
-                        : const Text("Masuk", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), // Font tombol disesuaikan
+                        : const Text("Masuk", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), 
                   ),
                 ),
-
-                const SizedBox(height: 15), // Jarak ke bawah diperkecil dari 25 ke 15
-
-                // TOMBOL REGISTER
+                const SizedBox(height: 15), 
                 Center(
                   child: TextButton(
                     onPressed: () {
-                      // ➡️ NAVIGASI KE HALAMAN REGISTER MOBILE
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const RegisterMobilePage()),

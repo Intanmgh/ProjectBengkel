@@ -1,6 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'tambah_spk_page.dart';
-import 'detail_spk_page.dart'; // 🔥 TAMBAHAN
+import 'detail_spk_page.dart';
 
 class SpkPage extends StatefulWidget {
   const SpkPage({super.key});
@@ -12,56 +13,13 @@ class SpkPage extends StatefulWidget {
 class _SpkPageState extends State<SpkPage> {
 
   bool isTambahPage = false;
-  bool isDetailPage = false; // 🔥 TAMBAHAN
+  bool isDetailPage = false;
 
-  List<Map<String, String>> allData = [
-    {
-      "tanggal": "12 FEBRUARI 2026",
-      "spk": "SPK-001",
-      "nama": "Farid Shidiq S",
-      "plat": "B 1245 ACB",
-      "kendaraan": "Mazda 3 Hashback",
-      "montir": "Farid Shidiq S",
-      "status": "Menunggu"
-    },
-    {
-      "tanggal": "12 FEBRUARI 2026",
-      "spk": "SPK-002",
-      "nama": "Farid Shidiq S",
-      "plat": "B 1245 ACB",
-      "kendaraan": "Mazda 3 Hashback",
-      "montir": "Farid Shidiq S",
-      "status": "Selesai"
-    },
-    {
-      "tanggal": "12 FEBRUARI 2026",
-      "spk": "SPK-003",
-      "nama": "Farid Shidiq S",
-      "plat": "B 1245 ACB",
-      "kendaraan": "Mazda 3 Hashback",
-      "montir": "Farid Shidiq S",
-      "status": "Proses"
-    },
-  ];
+  Map<String, dynamic>? selectedSpk;
 
-  List<Map<String, String>> filteredData = [];
+  final TextEditingController searchController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    filteredData = allData;
-  }
-
-  void searchData(String keyword) {
-    final results = allData.where((data) {
-      return data["spk"]!.toLowerCase().contains(keyword.toLowerCase()) ||
-          data["nama"]!.toLowerCase().contains(keyword.toLowerCase());
-    }).toList();
-
-    setState(() {
-      filteredData = results;
-    });
-  }
+  // ================= WARNA STATUS =================
 
   Color statusColor(String status) {
     if (status == "Menunggu") return Colors.orange;
@@ -75,7 +33,14 @@ class _SpkPageState extends State<SpkPage> {
     return Colors.green.shade100;
   }
 
-  Widget statCard(String title, String value, Color color, IconData icon) {
+  // ================= STAT CARD =================
+
+  Widget statCard(
+    String title,
+    String value,
+    Color color,
+    IconData icon,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -102,10 +67,12 @@ class _SpkPageState extends State<SpkPage> {
                 Text(
                   value,
                   style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),
@@ -115,179 +82,321 @@ class _SpkPageState extends State<SpkPage> {
   @override
   Widget build(BuildContext context) {
 
-    // 🔥 HALAMAN TAMBAH
+    // ================= HALAMAN TAMBAH =================
     if (isTambahPage) {
       return TambahSpkPage(
-        onBack: () {
-          setState(() {
-            isTambahPage = false;
-          });
-        },
+        onBack: () => setState(() => isTambahPage = false),
       );
     }
 
-    // 🔥 HALAMAN DETAIL
-    if (isDetailPage) {
+    // ================= HALAMAN DETAIL =================
+    if (isDetailPage && selectedSpk != null) {
       return DetailSpkPage(
-        onBack: () {
-          setState(() {
-            isDetailPage = false;
-          });
-        },
+        spkData: selectedSpk!,
+        onBack: () => setState(() {
+          isDetailPage = false;
+          selectedSpk = null;
+        }),
       );
     }
 
-    // 🔥 HALAMAN UTAMA (TIDAK DIUBAH)
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+    // ================= HALAMAN UTAMA =================
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('spk')
+          .orderBy('created_at', descending: true)
+          .snapshots(),
 
-        const Text(
-          "Data Surat Perintah Kerja (SPK)",
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
+      builder: (context, snapshot) {
 
-        const SizedBox(height: 10),
-        const Text("Kelola dan pantau seluruh Surat Perintah Kerja bengkel"),
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-        const SizedBox(height: 20),
+        final semuaData = snapshot.data!.docs;
 
-        Row(
+        // ================= HITUNG STATUS =================
+        final totalSemua = semuaData.length;
+        final totalMenunggu = semuaData
+            .where((d) => d['status'] == 'Menunggu')
+            .length;
+        final totalProses = semuaData
+            .where((d) => d['status'] == 'Proses')
+            .length;
+        final totalSelesai = semuaData
+            .where((d) => d['status'] == 'Selesai')
+            .length;
+
+        // ================= FILTER SEARCH =================
+        final query = searchController.text.toLowerCase();
+        final filteredData = semuaData.where((data) {
+          final nama = (data['nama_pelanggan'] ?? '').toString().toLowerCase();
+          final plat = (data['plat'] ?? '').toString().toLowerCase();
+          final id = data.id.toLowerCase();
+          return nama.contains(query) ||
+              plat.contains(query) ||
+              id.contains(query);
+        }).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            statCard("Semua SPK", "24", Colors.purple, Icons.description),
-            const SizedBox(width: 20),
-            statCard("Menunggu", "15 SPK", Colors.orange, Icons.schedule),
-            const SizedBox(width: 20),
-            statCard("Proses", "10 SPK", Colors.blue, Icons.build),
-            const SizedBox(width: 20),
-            statCard("Selesai", "5 SPK", Colors.green, Icons.check_circle),
-          ],
-        ),
 
-        const SizedBox(height: 20),
+            // ================= TITLE =================
+            const Text(
+              "Data Surat Perintah Kerja (SPK)",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
 
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                onChanged: searchData,
-                decoration: InputDecoration(
-                  hintText: "Cari No. SPK atau pelanggan...",
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+            const SizedBox(height: 10),
+
+            const Text(
+              "Kelola dan pantau seluruh Surat Perintah Kerja bengkel",
+            ),
+
+            const SizedBox(height: 20),
+
+            // ================= STAT CARDS =================
+            Row(
+              children: [
+                statCard(
+                  "Semua SPK",
+                  "$totalSemua SPK",
+                  Colors.purple,
+                  Icons.description,
+                ),
+                const SizedBox(width: 20),
+                statCard(
+                  "Menunggu",
+                  "$totalMenunggu SPK",
+                  Colors.orange,
+                  Icons.schedule,
+                ),
+                const SizedBox(width: 20),
+                statCard(
+                  "Proses",
+                  "$totalProses SPK",
+                  Colors.blue,
+                  Icons.build,
+                ),
+                const SizedBox(width: 20),
+                statCard(
+                  "Selesai",
+                  "$totalSelesai SPK",
+                  Colors.green,
+                  Icons.check_circle,
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // ================= SEARCH + TOMBOL =================
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: searchController,
+                    onChanged: (value) => setState(() {}),
+                    decoration: InputDecoration(
+                      hintText: "Cari No. SPK, nama, atau plat...",
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 20),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 18,
+                    ),
+                  ),
+                  onPressed: () => setState(() => isTambahPage = true),
+                  icon: const Icon(Icons.add),
+                  label: const Text("Tambah SPK Baru"),
+                ),
+              ],
             ),
-            const SizedBox(width: 20),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                setState(() {
-                  isTambahPage = true;
-                });
-              },
-              icon: const Icon(Icons.add),
-              label: const Text("Tambah SPK Baru"),
-            ),
-          ],
+
+            const SizedBox(height: 20),
+
+            // ================= TABEL =================
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade400),
+                ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+
+                    // EMPTY STATE
+                    if (filteredData.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          "Belum ada data SPK",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      );
+                    }
+
+                    return Scrollbar(
+  thumbVisibility: true,
+  child: SingleChildScrollView(
+    scrollDirection: Axis.vertical,
+    child: SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minWidth: constraints.maxWidth,
         ),
-
-        const SizedBox(height: 20),
-
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade400),
-            ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: ConstrainedBox(
-                    constraints:
-                        BoxConstraints(minWidth: constraints.maxWidth),
-                    child: DataTable(
-                      border: TableBorder.all(color: Colors.grey.shade400),
-                      columnSpacing: 25,
-                      headingRowColor:
-                          WidgetStateProperty.all(Colors.grey.shade300),
-                      columns: const [
-                        DataColumn(label: Text("TANGGAL")),
-                        DataColumn(label: Text("NO SPK")),
-                        DataColumn(label: Text("NAMA")),
-                        DataColumn(label: Text("PLAT")),
-                        DataColumn(label: Text("KENDARAAN")),
-                        DataColumn(label: Text("MONTIR")),
-                        DataColumn(label: Text("STATUS")),
-                        DataColumn(label: Text("AKSI")),
-                      ],
-                      rows: filteredData.map((data) {
-                        return DataRow(cells: [
-                          DataCell(Text(data["tanggal"]!)),
-                          DataCell(
-                            Text(
-                              data["spk"]!,
-                              style: const TextStyle(
-                                  color: Colors.blue,
-                                  fontWeight: FontWeight.bold),
-                            ),
+        child: DataTable(
+                          border: TableBorder.all(
+                            color: Colors.grey.shade400,
                           ),
-                          DataCell(Text(data["nama"]!)),
-                          DataCell(Text(data["plat"]!)),
-                          DataCell(Text(data["kendaraan"]!)),
-                          DataCell(Text(data["montir"]!)),
+                          columnSpacing: 35,
+                          headingRowHeight: 45,
+                          dataRowMinHeight: 55,
+                          dataRowMaxHeight: 65,
+                          headingRowColor: WidgetStateProperty.all(
+                            Colors.grey.shade300,
+                          ),
+                          headingTextStyle: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                          columns: const [
+                            DataColumn(label: Text("TANGGAL")),
+                            DataColumn(label: Text("NO SPK")),
+                            DataColumn(label: Text("NAMA PELANGGAN")),
+                            DataColumn(label: Text("PLAT")),
+                            DataColumn(label: Text("KENDARAAN")),
+                            DataColumn(label: Text("MONTIR")),
+                            DataColumn(label: Text("JENIS SERVIS")),
+                            DataColumn(label: Text("STATUS")),
+                            DataColumn(label: Text("AKSI")),
+                          ],
+                          rows: filteredData.asMap().entries.map((entry) {
 
-                          DataCell(
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: statusBg(data["status"]!),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                data["status"]!,
-                                style: TextStyle(
-                                  color: statusColor(data["status"]!),
-                                  fontWeight: FontWeight.bold,
+                            final index = entry.key;
+                            final doc = entry.value;
+                            final data = doc.data() as Map<String, dynamic>;
+
+                            // FORMAT NOMOR SPK
+                            final noSpk =
+                            data['no_spk'] ??
+                            "SPK-${(index + 1).toString().padLeft(4, '0')}";
+
+                            // FORMAT TANGGAL
+                            String tanggal = "-";
+                            if (data['created_at'] != null) {
+                              final date =
+                                  (data['created_at'] as Timestamp).toDate();
+                              tanggal =
+                                  "${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}";
+                            }
+
+                            final status = data['status'] ?? 'Menunggu';
+
+                            return DataRow(cells: [
+
+                              DataCell(Text(tanggal)),
+
+                              DataCell(
+                                Text(
+                                  noSpk,
+                                  style: const TextStyle(
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
 
-                          // 🔥 FIX TOMBOL DETAIL
-                          DataCell(
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.indigo,
-                                foregroundColor: Colors.white,
+                              DataCell(
+                                Text(data['nama_pelanggan'] ?? '-'),
                               ),
-                              onPressed: () {
-                                setState(() {
-                                  isDetailPage = true;
-                                });
-                              },
-                              child: const Text("Detail"),
-                            ),
-                          ),
-                        ]);
-                      }).toList(),
+
+                              DataCell(Text(data['plat'] ?? '-')),
+
+                              DataCell(Text(data['kendaraan'] ?? '-')),
+
+                              DataCell(Text(data['nama_montir'] ?? '-')),
+
+                              DataCell(
+                                        Text(
+                                          data['jenis_servis'] is List
+                                              ? (data['jenis_servis'] as List).join(', ')
+                                              : (data['jenis_servis'] ?? '-').toString(),
+                                        ),
+                                      ),
+
+                              // STATUS BADGE
+                              DataCell(
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: statusBg(status),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    status,
+                                    style: TextStyle(
+                                      color: statusColor(status),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              // TOMBOL DETAIL
+                              DataCell(
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.indigo,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      selectedSpk = {
+                                        'id': doc.id,
+                                        'noSpk': noSpk,
+                                        'tanggal': tanggal,
+                                        ...data,
+                                      };
+                                      isDetailPage = true;
+                                    });
+                                  },
+                                  child: const Text("Detail"),
+                                ),
+                              ),
+                            ]);
+                          }).toList(),
+                                                ),
+                      ),
                     ),
                   ),
                 );
-              },
+                  },
+                ),
+              ),
             ),
-          ),
-        )
-      ],
+          ],
+        );
+      },
     );
   }
 }

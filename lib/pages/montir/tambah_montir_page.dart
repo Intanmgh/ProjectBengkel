@@ -23,6 +23,7 @@ class _TambahMontirPageState extends State<TambahMontirPage> {
         'telp': telpController.text.trim(),
         'spesialis': spesialisController.text.trim(),
         'status': selectedStatus,
+        'uid_akun': '',
         'created_at': Timestamp.now(),
       });
 

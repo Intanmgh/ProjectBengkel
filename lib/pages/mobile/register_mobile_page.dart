@@ -16,6 +16,7 @@ class _RegisterMobilePageState extends State<RegisterMobilePage> {
   bool isLoading = false;
 
   Future<void> registerUser() async {
+    // 1. Validasi Input Kosong
     if (emailController.text.trim().isEmpty || passwordController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Email dan Kata Sandi tidak boleh kosong!")),
@@ -23,23 +24,34 @@ class _RegisterMobilePageState extends State<RegisterMobilePage> {
       return;
     }
 
+    // 2. Validasi Kesamaan Kata Sandi (Tambahan Baru)
+    if (passwordController.text.trim() != confirmPasswordController.text.trim()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Kata Sandi dan Konfirmasi Kata Sandi tidak cocok!"), 
+          backgroundColor: Colors.orange
+        ),
+      );
+      return;
+    }
+
     setState(() => isLoading = true);
 
     try {
-      // 1. Daftarkan akun ke Auth pusat proyek kawan Anda
+      // 3. Daftarkan akun ke Auth pusat proyek
       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
 
-      // 2. Ambil UID yang baru saja terbuat
+      // 4. Ambil UID yang baru saja terbuat
       String uid = userCredential.user!.uid;
 
-      // 3. Buat koleksi 'users' di Cloud Firestore secara otomatis untuk mengunci role pelanggan
+      // 5. Buat koleksi 'users' di Cloud Firestore secara otomatis untuk mengunci role pelanggan
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'uid': uid,
         'email': emailController.text.trim(),
-        'role': 'pelanggan', // Pengenal utama akun mobile pelanggan
+        'role': 'pelanggan', // Pengenal utama akun mobile pelanggan otomatis terproteksi
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -148,7 +160,7 @@ class _RegisterMobilePageState extends State<RegisterMobilePage> {
 
                       const SizedBox(height: 25),
 
-                      // 🔥 TOMBOL DAFTAR
+                      // TOMBOL DAFTAR
                       SizedBox(
                         width: double.infinity,
                         height: 42,
