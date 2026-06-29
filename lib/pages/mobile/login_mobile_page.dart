@@ -36,19 +36,20 @@ class _LoginMobilePageState extends State<LoginMobilePage> {
 
       String uid = userCredential.user!.uid;
 
-      // ================= 1. CEK KOLEKSI 'users' (PELANGGAN) =================
+      // ================= 1. CEK KOLEKSI 'pelanggan' =================
+      // PERBAIKAN: Mengubah pencarian dari 'users' menjadi 'pelanggan'
       DocumentSnapshot pelangganDoc = await FirebaseFirestore.instance
-          .collection('users')
+          .collection('pelanggan')
           .doc(uid)
           .get();
 
       if (!mounted) return;
 
       if (pelangganDoc.exists) {
-        // 🔒 Validasi isi role: Harus bertuliskan 'pelanggan'
         String role = pelangganDoc.get('role') ?? '';
         
-        if (role == 'pelanggan') {
+        // PERBAIKAN: Menggunakan .toLowerCase() agar kebal terhadap salah ketik huruf besar/kecil
+        if (role.toLowerCase() == 'pelanggan') {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("Login Sukses Sebagai Pelanggan!"),
@@ -77,7 +78,7 @@ class _LoginMobilePageState extends State<LoginMobilePage> {
       if (montirDoc.exists) {
         String role = montirDoc.get('role') ?? '';
 
-        if (role == 'montir') {
+        if (role.toLowerCase() == 'montir') {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("Login Sukses Sebagai Montir!"),
@@ -92,7 +93,7 @@ class _LoginMobilePageState extends State<LoginMobilePage> {
             ),
           );
           return;
-        } else if (role == 'admin') {
+        } else if (role.toLowerCase() == 'admin') {
           // 🛑 Antisipasi jika admin login di aplikasi mobile, beri peringatan atau arahkan ke halaman khusus
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

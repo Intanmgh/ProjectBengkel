@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'tambah_spk_page.dart';
 import 'detail_spk_page.dart';
 
@@ -18,6 +19,17 @@ class _SpkPageState extends State<SpkPage> {
   Map<String, dynamic>? selectedSpk;
 
   final TextEditingController searchController = TextEditingController();
+
+  // ================= SCROLL CONTROLLERS =================
+  final ScrollController _verticalController = ScrollController();
+  final ScrollController _horizontalController = ScrollController();
+
+  @override
+  void dispose() {
+    _verticalController.dispose();
+    _horizontalController.dispose();
+    super.dispose();
+  }
 
   // ================= WARNA STATUS =================
 
@@ -251,89 +263,119 @@ class _SpkPageState extends State<SpkPage> {
                       );
                     }
 
-                    return Scrollbar(
-  thumbVisibility: true,
-  child: SingleChildScrollView(
-    scrollDirection: Axis.vertical,
-    child: SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          minWidth: constraints.maxWidth,
-        ),
-        child: DataTable(
-                          border: TableBorder.all(
-                            color: Colors.grey.shade400,
-                          ),
-                          columnSpacing: 35,
-                          headingRowHeight: 45,
-                          dataRowMinHeight: 55,
-                          dataRowMaxHeight: 65,
-                          headingRowColor: WidgetStateProperty.all(
-                            Colors.grey.shade300,
-                          ),
-                          headingTextStyle: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                          columns: const [
-                            DataColumn(label: Text("TANGGAL")),
-                            DataColumn(label: Text("NO SPK")),
-                            DataColumn(label: Text("NAMA PELANGGAN")),
-                            DataColumn(label: Text("PLAT")),
-                            DataColumn(label: Text("KENDARAAN")),
-                            DataColumn(label: Text("MONTIR")),
-                            DataColumn(label: Text("JENIS SERVIS")),
-                            DataColumn(label: Text("STATUS")),
-                            DataColumn(label: Text("AKSI")),
-                          ],
-                          rows: filteredData.asMap().entries.map((entry) {
-
-                            final index = entry.key;
-                            final doc = entry.value;
-                            final data = doc.data() as Map<String, dynamic>;
-
-                            // FORMAT NOMOR SPK
-                            final noSpk =
-                            data['no_spk'] ??
-                            "SPK-${(index + 1).toString().padLeft(4, '0')}";
-
-                            // FORMAT TANGGAL
-                            String tanggal = "-";
-                            if (data['created_at'] != null) {
-                              final date =
-                                  (data['created_at'] as Timestamp).toDate();
-                              tanggal =
-                                  "${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}";
-                            }
-
-                            final status = data['status'] ?? 'Menunggu';
-
-                            return DataRow(cells: [
-
-                              DataCell(Text(tanggal)),
-
-                              DataCell(
-                                Text(
-                                  noSpk,
-                                  style: const TextStyle(
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                    // ================= SCROLL MOUSE WHEEL =================
+                    return Listener(
+                      onPointerSignal: (event) {
+                      if (event is PointerScrollEvent) {
+                        if (event.scrollDelta.dx != 0) {
+                          final newOffset = (_horizontalController.offset +
+                                  event.scrollDelta.dx)
+                              .clamp(
+                            0.0,
+                            _horizontalController.position.maxScrollExtent,
+                          );
+                          _horizontalController.jumpTo(newOffset);
+                        } else {
+                          final newOffset = (_verticalController.offset +
+                                  event.scrollDelta.dy)
+                              .clamp(
+                            0.0,
+                            _verticalController.position.maxScrollExtent,
+                          );
+                          _verticalController.jumpTo(newOffset);
+                        }
+                      }
+                    },
+                      child: Scrollbar(
+                        controller: _verticalController,
+                        thumbVisibility: true,
+                        child: Scrollbar(
+                          controller: _horizontalController,
+                          thumbVisibility: true,
+                          notificationPredicate: (notif) => notif.depth == 1,
+                          child: SingleChildScrollView(
+                            controller: _verticalController,
+                            scrollDirection: Axis.vertical,
+                            child: SingleChildScrollView(
+                              controller: _horizontalController,
+                              scrollDirection: Axis.horizontal,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minWidth: constraints.maxWidth,
                                 ),
-                              ),
+                                child: DataTable(
+                                  border: TableBorder.all(
+                                    color: Colors.grey.shade400,
+                                  ),
+                                  columnSpacing: 35,
+                                  headingRowHeight: 45,
+                                  dataRowMinHeight: 55,
+                                  dataRowMaxHeight: 65,
+                                  headingRowColor: WidgetStateProperty.all(
+                                    Colors.grey.shade300,
+                                  ),
+                                  headingTextStyle: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                  columns: const [
+                                    DataColumn(label: Text("TANGGAL")),
+                                    DataColumn(label: Text("NO SPK")),
+                                    DataColumn(label: Text("NAMA PELANGGAN")),
+                                    DataColumn(label: Text("PLAT")),
+                                    DataColumn(label: Text("KENDARAAN")),
+                                    DataColumn(label: Text("MONTIR")),
+                                    DataColumn(label: Text("JENIS SERVIS")),
+                                    DataColumn(label: Text("STATUS")),
+                                    DataColumn(label: Text("AKSI")),
+                                  ],
+                                  rows: filteredData.asMap().entries.map((entry) {
 
-                              DataCell(
-                                Text(data['nama_pelanggan'] ?? '-'),
-                              ),
+                                    final index = entry.key;
+                                    final doc = entry.value;
+                                    final data = doc.data() as Map<String, dynamic>;
 
-                              DataCell(Text(data['plat'] ?? '-')),
+                                    // FORMAT NOMOR SPK
+                                    final noSpk =
+                                        data['no_spk'] ??
+                                        "SPK-${(index + 1).toString().padLeft(4, '0')}";
 
-                              DataCell(Text(data['kendaraan'] ?? '-')),
+                                    // FORMAT TANGGAL
+                                    String tanggal = "-";
+                                    if (data['created_at'] != null) {
+                                      final date =
+                                          (data['created_at'] as Timestamp).toDate();
+                                      tanggal =
+                                          "${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}";
+                                    }
 
-                              DataCell(Text(data['nama_montir'] ?? '-')),
+                                    final status = data['status'] ?? 'Menunggu';
 
-                              DataCell(
+                                    return DataRow(cells: [
+
+                                      DataCell(Text(tanggal)),
+
+                                      DataCell(
+                                        Text(
+                                          noSpk,
+                                          style: const TextStyle(
+                                            color: Colors.blue,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+
+                                      DataCell(
+                                        Text(data['nama_pelanggan'] ?? '-'),
+                                      ),
+
+                                      DataCell(Text(data['plat'] ?? '-')),
+
+                                      DataCell(Text(data['kendaraan'] ?? '-')),
+
+                                      DataCell(Text(data['nama_montir'] ?? '-')),
+
+                                      DataCell(
                                         Text(
                                           data['jenis_servis'] is List
                                               ? (data['jenis_servis'] as List).join(', ')
@@ -341,55 +383,57 @@ class _SpkPageState extends State<SpkPage> {
                                         ),
                                       ),
 
-                              // STATUS BADGE
-                              DataCell(
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: statusBg(status),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    status,
-                                    style: TextStyle(
-                                      color: statusColor(status),
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                                      // STATUS BADGE
+                                      DataCell(
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: statusBg(status),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            status,
+                                            style: TextStyle(
+                                              color: statusColor(status),
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
 
-                              // TOMBOL DETAIL
-                              DataCell(
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.indigo,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      selectedSpk = {
-                                        'id': doc.id,
-                                        'noSpk': noSpk,
-                                        'tanggal': tanggal,
-                                        ...data,
-                                      };
-                                      isDetailPage = true;
-                                    });
-                                  },
-                                  child: const Text("Detail"),
+                                      // TOMBOL DETAIL
+                                      DataCell(
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.indigo,
+                                            foregroundColor: Colors.white,
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              selectedSpk = {
+                                                'id': doc.id,
+                                                'noSpk': noSpk,
+                                                'tanggal': tanggal,
+                                                ...data,
+                                              };
+                                              isDetailPage = true;
+                                            });
+                                          },
+                                          child: const Text("Detail"),
+                                        ),
+                                      ),
+                                    ]);
+                                  }).toList(),
                                 ),
                               ),
-                            ]);
-                          }).toList(),
-                                                ),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                );
+                    );
                   },
                 ),
               ),

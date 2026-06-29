@@ -1,7 +1,34 @@
-// import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:image_picker/image_picker.dart';
+
+// 🔥 FORMATTER TITIK RIBUAN OTOMATIS SAAT KETIK
+class _RupiahInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    String digits = newValue.text.replaceAll('.', '');
+    if (digits.isEmpty) return newValue.copyWith(text: '');
+    final number = int.tryParse(digits) ?? 0;
+    final formatted = _formatAngka(number);
+    return newValue.copyWith(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+
+  String _formatAngka(int value) {
+    final str = value.toString();
+    final buffer = StringBuffer();
+    int counter = 0;
+    for (int i = str.length - 1; i >= 0; i--) {
+      if (counter > 0 && counter % 3 == 0) buffer.write('.');
+      buffer.write(str[i]);
+      counter++;
+    }
+    return buffer.toString().split('').reversed.join();
+  }
+}
 
 class TambahSparepartPage extends StatefulWidget {
   final String? docId;
@@ -26,194 +53,187 @@ class _TambahSparepartPageState extends State<TambahSparepartPage> {
   final minStokController = TextEditingController();
   final fotoController = TextEditingController();
 
-
-
+  // 🔥 KATEGORI DIUPDATE SESUAI EXCEL
   String selectedKategori = "Oli";
-  final kategoriList = ["Oli", "Filter", "Kampas"];
+  final List<String> kategoriList = [
+    "Oli",
+    "Grease",
+    "Filter Oli",
+    "Filter Udara",
+    "Filter AC",
+    "Filter Bahan Bakar",
+    "Kampas Rem",
+    "Pompa",
+    "Additive",
+    "Spare Part",
+  ];
 
-  // Uint8List? _imageBytes;
-  // String? _existingImageUrl;
-  // bool isUploadingImage = false;
+  String selectedTypeKendaraan = "ALL TYPE";
+  final List<String> typeKendaraanList = [
+    "ALL NEW PAJERO",
+    "ALL TYPE",
+    "ALL TYPE AT",
+    "ALL TYPE CVT",
+    "ALL TYPE DIESEL",
+    "ALL TYPE GASOLIN",
+    "AVANZA",
+    "AVANZA NEW",
+    "CANTER",
+    "CANTER NEW",
+    "COLT DIESEL",
+    "DUTRO",
+    "DUTRO, CANTER",
+    "ELF MACAN",
+    "ELF NLR",
+    "ERTIGA",
+    "FUSO",
+    "INNOVA REBORN",
+    "KIJANG EFI",
+    "L300",
+    "LIVINA",
+    "MIRAGE",
+    "NAVARA",
+    "NEW L300",
+    "NEW PAJERO",
+    "PAJERO",
+    "PAJERO DAKAR",
+    "PAJERO EXCEED",
+    "PAJERO OLD",
+    "PANTHER 1,8",
+    "PANTHER 2,5",
+    "RINO",
+    "T120SS",
+    "TRITON",
+    "X PANDER",
+    "XPANDER",
+    "XPANDER, MIRAGE",
+    "XENIA 1000 CC",  // 🔥 tambahan dari Excel
+  ];
+
   bool isLoading = false;
+
+  int _parseRupiah(String value) {
+    return int.tryParse(value.replaceAll('.', '')) ?? 0;
+  }
+
+  String _formatAngka(int value) {
+    final str = value.toString();
+    final buffer = StringBuffer();
+    int counter = 0;
+    for (int i = str.length - 1; i >= 0; i--) {
+      if (counter > 0 && counter % 3 == 0) buffer.write('.');
+      buffer.write(str[i]);
+      counter++;
+    }
+    return buffer.toString().split('').reversed.join();
+  }
 
   @override
   void initState() {
     super.initState();
     if (widget.data != null) {
-  namaController.text = widget.data!['nama'] ?? '';
-  beliController.text = (widget.data!['harga_beli'] ?? 0).toString();
-  jualController.text = (widget.data!['harga_jual'] ?? 0).toString();
-  stokController.text = (widget.data!['stok'] ?? 0).toString();
-  minStokController.text = (widget.data!['min_stok'] ?? 0).toString();
-  fotoController.text = widget.data!['foto_url'] ?? '';
-  selectedKategori = widget.data!['kategori'] ?? "Oli";
-}
-  }
+      namaController.text = widget.data!['nama'] ?? '';
+      beliController.text = _formatAngka(widget.data!['harga_beli'] ?? 0);
+      jualController.text = _formatAngka(widget.data!['harga_jual'] ?? 0);
+      stokController.text = (widget.data!['stok'] ?? 0).toString();
+      minStokController.text = (widget.data!['min_stok'] ?? 0).toString();
+      fotoController.text = widget.data!['foto_url'] ?? '';
 
-  // ================= PILIH GAMBAR =================
-  // Future<void> pilihGambar() async {
-  //   final picker = ImagePicker();
-  //   final picked = await picker.pickImage(
-  //     source: ImageSource.gallery,
-  //     maxWidth: 800,
-  //     maxHeight: 800,
-  //     imageQuality: 80,
-  //   );
-
-  //   if (picked != null) {
-  //     final bytes = await picked.readAsBytes();
-  //     setState(() {
-  //       _imageBytes = bytes;
-  //     });
-  //   }
-  // }
-
-  // ================= UPLOAD GAMBAR =================
-  // Future<String?> uploadGambar(String kode) async {
-  //   if (_imageBytes == null) return _existingImageUrl;
-
-  //   setState(() => isUploadingImage = true);
-
-  //   try {
-  //     final ref = FirebaseStorage.instance
-  //         .ref()
-  //         .child('sparepart')
-  //         .child('$kode.jpg');
-
-  //     await ref.putData(
-  //       _imageBytes!,
-  //       SettableMetadata(contentType: 'image/jpeg'),
-  //     );
-
-  //     final url = await ref.getDownloadURL();
-  //     setState(() => isUploadingImage = false);
-  //     return url;
-
-  //   } catch (e) {
-  //     setState(() => isUploadingImage = false);
-  //     if (!mounted) return null;
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text("Gagal upload gambar: $e")),
-  //     );
-  //     return null;
-  //   }
-  // }
-
-  // ================= GENERATE KODE (CEPAT - PAKAI TIMESTAMP) =================
-//   String getDefaultFoto(String kategori) {
-//   switch (kategori) {
-//     case "Oli":
-//       return "assets/images/oli.jpeg";
-
-//     case "Filter":
-//       return "assets/images/filter.jpeg";
-
-//     case "Kampas":
-//       return "assets/images/kampas.jpeg";
-
-//     default:
-//       return "assets/images/logo.png";
-//   }
-// }
-
-Future<String> generateKode(String kategori) async {
-  Map<String, String> prefixMap = {
-    "Oli": "OLI",
-    "Filter": "FIL",
-    "Kampas": "KPS",
-  };
-
-  String prefix = prefixMap[kategori] ?? "SPR";
-
-  final snapshot = await FirebaseFirestore.instance
-      .collection('sparepart')
-      .where('kategori', isEqualTo: kategori)
-      .get();
-
-  int nomorTerakhir = 0;
-
-  for (var doc in snapshot.docs) {
-    final kode = doc['kode'] ?? '';
-
-    if (kode.toString().startsWith(prefix)) {
-      try {
-        final nomor =
-            int.parse(kode.toString().split('-').last);
-
-        if (nomor > nomorTerakhir) {
-          nomorTerakhir = nomor;
-        }
-      } catch (_) {}
+      // 🔥 pastikan kategori yang disimpan ada di list, kalau tidak fallback ke "Spare Part"
+      final savedKategori = widget.data!['kategori'] ?? "Oli";
+      selectedKategori = kategoriList.contains(savedKategori) ? savedKategori : "Spare Part";
+      selectedTypeKendaraan = widget.data!['type_kendaraan'] ?? "ALL TYPE";
     }
   }
 
-  final nomorBaru = nomorTerakhir + 1;
+  // 🔥 GENERATE KODE DIUPDATE SESUAI KATEGORI BARU
+  Future<String> generateKode(String kategori) async {
+    final Map<String, String> prefixMap = {
+      "Oli":                "OLI",
+      "Filter Oli":         "FOLI",
+      "Filter Udara":       "FUDR",
+      "Filter AC":          "FAC",
+      "Filter Bahan Bakar": "FBB",
+      "Kampas Rem":         "KPS",
+      "Pompa":              "PMP",
+      "Additive":           "ADD",
+      "Spare Part":         "SPR",
+    };
 
-  return "$prefix-${nomorBaru.toString().padLeft(4, '0')}";
-}
+    final prefix = prefixMap[kategori] ?? "SPR";
 
-  // ================= SIMPAN DATA =================
+    final snapshot = await FirebaseFirestore.instance
+        .collection('sparepart')
+        .where('kategori', isEqualTo: kategori)
+        .get();
+
+    int nomorTerakhir = 0;
+    for (var doc in snapshot.docs) {
+      final kode = doc['kode'] ?? '';
+      if (kode.toString().startsWith(prefix)) {
+        try {
+          final nomor = int.parse(kode.toString().split('-').last);
+          if (nomor > nomorTerakhir) nomorTerakhir = nomor;
+        } catch (_) {}
+      }
+    }
+    return "$prefix-${(nomorTerakhir + 1).toString().padLeft(4, '0')}";
+  }
+
   Future<void> simpanData() async {
-
     final nama = namaController.text.trim();
-    final kategori = selectedKategori;
-    final hargaBeli = int.tryParse(beliController.text) ?? 0;
-    final hargaJual = int.tryParse(jualController.text) ?? 0;
+    final hargaJual = _parseRupiah(jualController.text);
     final stok = int.tryParse(stokController.text) ?? 0;
-    final minStok = int.tryParse(minStokController.text) ?? 0;
 
     if (nama.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Nama sparepart wajib diisi")),
+        const SnackBar(content: Text("⚠️ Nama sparepart wajib diisi"), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    if (hargaJual == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("⚠️ Harga jual wajib diisi"), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    if (stok == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("⚠️ Stok wajib diisi"), backgroundColor: Colors.red),
       );
       return;
     }
 
-    if (fotoController.text.trim().isEmpty) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text("Link foto wajib diisi"),
-    ),
-  );
-  return;
-}
-
     setState(() => isLoading = true);
 
     try {
+      final hargaBeli = _parseRupiah(beliController.text);
+      final minStok = int.tryParse(minStokController.text) ?? 0;
 
-      // ✅ EDIT
       if (widget.docId != null) {
-
         await FirebaseFirestore.instance
             .collection('sparepart')
             .doc(widget.docId)
             .update({
           'nama': nama,
-          'kategori': kategori,
+          'kategori': selectedKategori,
+          'type_kendaraan': selectedTypeKendaraan,
           'harga_beli': hargaBeli,
           'harga_jual': hargaJual,
           'stok': stok,
           'min_stok': minStok,
           'foto_url': fotoController.text.trim(),
         });
-
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Data berhasil diupdate"),
-            backgroundColor: Colors.green,
-          ),
+          const SnackBar(content: Text("✅ Data berhasil diupdate"), backgroundColor: Colors.green),
         );
-
       } else {
-
-        // ✅ TAMBAH - kode langsung dari timestamp, tidak perlu query Firestore
-        final kode = await generateKode(kategori);
-
+        final kode = await generateKode(selectedKategori);
         await FirebaseFirestore.instance.collection('sparepart').add({
           'nama': nama,
-          'kategori': kategori,
+          'kategori': selectedKategori,
+          'type_kendaraan': selectedTypeKendaraan,
           'kode': kode,
           'harga_beli': hargaBeli,
           'harga_jual': hargaJual,
@@ -222,18 +242,12 @@ Future<String> generateKode(String kategori) async {
           'foto_url': fotoController.text.trim(),
           'created_at': Timestamp.now(),
         });
-
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Data berhasil ditambahkan"),
-            backgroundColor: Colors.green,
-          ),
+          const SnackBar(content: Text("✅ Data berhasil ditambahkan"), backgroundColor: Colors.green),
         );
       }
-
       Navigator.pop(context);
-
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -247,11 +261,9 @@ Future<String> generateKode(String kategori) async {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
-        width: 900,
+        width: 950,
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -262,13 +274,8 @@ Future<String> generateKode(String kategori) async {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  widget.docId == null
-                      ? "Tambah Data Sparepart"
-                      : "Edit Data Sparepart",
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  widget.docId == null ? "Tambah Data Sparepart" : "Edit Data Sparepart",
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
@@ -277,7 +284,19 @@ Future<String> generateKode(String kategori) async {
               ],
             ),
 
-            const SizedBox(height: 20),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: RichText(
+                text: const TextSpan(children: [
+                  TextSpan(text: "* ", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                  TextSpan(text: "Wajib diisi  ", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  TextSpan(text: "Opsional", style: TextStyle(color: Colors.blue, fontSize: 12)),
+                  TextSpan(text: " = boleh dikosongkan", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                ]),
+              ),
+            ),
+
+            const SizedBox(height: 16),
 
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,29 +305,56 @@ Future<String> generateKode(String kategori) async {
                 // ================= KOLOM KIRI =================
                 Expanded(
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      buildInput("Nama Sparepart *", namaController),
+
+                      _buildLabel("Nama Sparepart", wajib: true),
+                      _buildTextField(
+                        controller: namaController,
+                        hint: "Contoh: Oli Shell Helix",
+                        helper: "Isi nama sparepart sesuai produk",
+                        tipeInput: TextInputType.text,
+                      ),
+
+                      _buildLabel("Kategori", wajib: true),
                       DropdownButtonFormField<String>(
                         initialValue: selectedKategori,
-                        items: kategoriList.map((k) {
-                          return DropdownMenuItem(
-                            value: k,
-                            child: Text(k),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() => selectedKategori = value!);
-                        },
+                        items: kategoriList
+                            .map((k) => DropdownMenuItem(value: k, child: Text(k)))
+                            .toList(),
+                        onChanged: (value) => setState(() => selectedKategori = value!),
                         decoration: InputDecoration(
-                          labelText: "Kategori",
                           helperText: "Pilih jenis sparepart",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                         ),
                       ),
+
                       const SizedBox(height: 15),
-                      buildInput("Stok", stokController),
+
+                      _buildLabel("Stok", wajib: true),
+                      _buildTextField(
+                        controller: stokController,
+                        hint: "Contoh: 10",
+                        helper: "Jumlah barang tersedia",
+                      ),
+
+                      const SizedBox(height: 15),
+
+                      _buildLabel("Type Kendaraan", wajib: false),
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedTypeKendaraan,
+                        decoration: InputDecoration(
+                          helperText: "Pilih type kendaraan (opsional)",
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        items: typeKendaraanList
+                            .map((item) => DropdownMenuItem(
+                                  value: item,
+                                  child: Text(item, overflow: TextOverflow.ellipsis),
+                                ))
+                            .toList(),
+                        onChanged: (value) => setState(() => selectedTypeKendaraan = value!),
+                      ),
                     ],
                   ),
                 ),
@@ -318,10 +364,31 @@ Future<String> generateKode(String kategori) async {
                 // ================= KOLOM TENGAH =================
                 Expanded(
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      buildInput("Harga Beli", beliController),
-                      buildInput("Harga Jual", jualController),
-                      buildInput("Minimal Stok", minStokController),
+
+                      _buildLabel("Harga Beli", wajib: false),
+                      _buildTextField(
+                        controller: beliController,
+                        hint: "Contoh: 50.000",
+                        helper: "Opsional — harga modal sparepart",
+                        isRupiah: true,
+                      ),
+
+                      _buildLabel("Harga Jual", wajib: true),
+                      _buildTextField(
+                        controller: jualController,
+                        hint: "Contoh: 75.000",
+                        helper: "Harga jual ke pelanggan",
+                        isRupiah: true,
+                      ),
+
+                      _buildLabel("Minimal Stok", wajib: false),
+                      _buildTextField(
+                        controller: minStokController,
+                        hint: "Contoh: 3",
+                        helper: "Opsional — batas peringatan stok menipis",
+                      ),
                     ],
                   ),
                 ),
@@ -330,62 +397,66 @@ Future<String> generateKode(String kategori) async {
 
                 // ================= KOLOM KANAN - FOTO =================
                 Expanded(
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
 
-      TextField(
-        controller: fotoController,
-        onChanged: (_) {
-          setState(() {});
-        },
-        decoration: InputDecoration(
-          labelText: "Link Foto",
-          hintText: "https://...",
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-      ),
-
-      const SizedBox(height: 15),
-
-      Container(
-        width: double.infinity,
-        height: 180,
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: Colors.grey.shade300,
-          ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: fotoController.text.trim().isEmpty
-            ? const Center(
-                child: Text("Preview gambar"),
-              )
-            : ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  fotoController.text.trim(),
-                  fit: BoxFit.cover,
-                  errorBuilder:
-                      (context, error, stackTrace) {
-                    return const Center(
-                      child: Text(
-                        "Link gambar tidak valid",
+                      _buildLabel("Link Foto", wajib: false),
+                      TextField(
+                        controller: fotoController,
+                        keyboardType: TextInputType.url,
+                        onChanged: (_) => setState(() {}),
+                        decoration: InputDecoration(
+                          hintText: "https://...",
+                          helperText: "Opsional — tempel link URL gambar",
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
                       ),
-                    );
-                  },
+
+                      const SizedBox(height: 15),
+
+                      Container(
+                        width: double.infinity,
+                        height: 200,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: fotoController.text.trim().isEmpty
+                            ? const Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.image_outlined, size: 40, color: Colors.grey),
+                                    SizedBox(height: 8),
+                                    Text("Preview gambar", style: TextStyle(color: Colors.grey)),
+                                  ],
+                                ),
+                              )
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  fotoController.text.trim(),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => const Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.broken_image_outlined, size: 40, color: Colors.red),
+                                        SizedBox(height: 8),
+                                        Text("Link gambar tidak valid", style: TextStyle(color: Colors.red)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-      ),
-    ],
-  ),
-),
-
- ],
+              ],
             ),
-
 
             const SizedBox(height: 25),
 
@@ -417,17 +488,10 @@ Future<String> generateKode(String kategori) async {
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
                         : const Icon(Icons.save),
-                    label: Text(
-                      isLoading
-                          ? "Menyimpan..."
-                          : "Simpan Data",
-                    ),
+                    label: Text(isLoading ? "Menyimpan..." : "Simpan Data"),
                   ),
                 ),
               ],
@@ -438,47 +502,45 @@ Future<String> generateKode(String kategori) async {
     );
   }
 
-  // ================= BUILD INPUT =================
-  Widget buildInput(String label, TextEditingController controller) {
-    String hint = "";
-    String helper = "";
+  Widget _buildLabel(String label, {required bool wajib}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: RichText(
+        text: TextSpan(
+          children: [
+            TextSpan(
+              text: label,
+              style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500, fontSize: 13),
+            ),
+            if (wajib)
+              const TextSpan(text: "  *", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))
+            else
+              const TextSpan(text: "  Opsional", style: TextStyle(color: Colors.blue, fontSize: 11)),
+          ],
+        ),
+      ),
+    );
+  }
 
-    if (label.contains("Nama")) {
-      hint = "Contoh: Oli Shell Helix";
-      helper = "Isi nama sparepart sesuai produk";
-    } else if (label.contains("Harga Beli")) {
-      hint = "Contoh: 50000";
-      helper = "Tanpa Rp atau titik";
-    } else if (label.contains("Harga Jual")) {
-      hint = "Contoh: 75000";
-      helper = "Harga jual ke pelanggan";
-    } else if (label.contains("Minimal")) {
-      hint = "Contoh: 5";
-      helper = "Batas minimum stok";
-    } else if (label.contains("Stok")) {
-      hint = "Contoh: 10";
-      helper = "Jumlah barang tersedia";
-    }
-
+  Widget _buildTextField({
+    required TextEditingController controller,
+    String hint = "",
+    String helper = "",
+    TextInputType tipeInput = TextInputType.number,
+    bool isRupiah = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label),
-          const SizedBox(height: 5),
-          TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              hintText: hint,
-              helperText: helper,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-        ],
+      child: TextField(
+        controller: controller,
+        keyboardType: tipeInput,
+        inputFormatters: isRupiah ? [_RupiahInputFormatter()] : [],
+        decoration: InputDecoration(
+          hintText: hint,
+          helperText: helper,
+          prefixText: isRupiah ? "Rp " : null,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        ),
       ),
     );
   }

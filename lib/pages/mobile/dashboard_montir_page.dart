@@ -25,7 +25,10 @@ class _DashboardMontirPageState extends State<DashboardMontirPage> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> halamanMenu = [
-      KontenBerandaMontir(onKerjakanPressed: () => ubahHalaman(1)), 
+      KontenBerandaMontir(
+        onKerjakanPressed: () => ubahHalaman(1),
+        onProfilePressed: () => ubahHalaman(2), // Bisa klik profil
+      ), 
       HalamanProsesServis(onSelesaiSemua: () => ubahHalaman(0)), 
       const ProfilePage(),
     ];
@@ -56,7 +59,8 @@ class _DashboardMontirPageState extends State<DashboardMontirPage> {
 // =========================================================
 class KontenBerandaMontir extends StatefulWidget {
   final VoidCallback onKerjakanPressed;
-  const KontenBerandaMontir({super.key, required this.onKerjakanPressed});
+  final VoidCallback onProfilePressed; 
+  const KontenBerandaMontir({super.key, required this.onKerjakanPressed, required this.onProfilePressed});
 
   @override
   State<KontenBerandaMontir> createState() => _KontenBerandaMontirState();
@@ -89,7 +93,6 @@ class _KontenBerandaMontirState extends State<KontenBerandaMontir> with SingleTi
     }
   }
 
-  // FITUR: MUNCULKAN DETAIL SPK SAAT KARTU DIKETUK
   void _tampilkanDetailSPK(BuildContext context, Map<String, dynamic> data, String deskripsiServis) {
     showModalBottomSheet(
       context: context,
@@ -108,7 +111,6 @@ class _KontenBerandaMontirState extends State<KontenBerandaMontir> with SingleTi
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Garis Indikator Swipe
               Center(
                 child: Container(
                   width: 50, height: 5,
@@ -200,16 +202,24 @@ class _KontenBerandaMontirState extends State<KontenBerandaMontir> with SingleTi
                     ),
                   ],
                 ),
-                Row(
-                  children: [
-                    Text("Halo, $namaMontir", style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11)),
-                    const SizedBox(width: 6),
-                    CircleAvatar(
-                      radius: 14,
-                      backgroundColor: Colors.orange.shade100,
-                      child: const Icon(Icons.face, size: 16, color: Colors.orange),
-                    )
-                  ],
+                // HEADER PROFIL YANG BISA DIKLIK
+                InkWell(
+                  onTap: widget.onProfilePressed, 
+                  borderRadius: BorderRadius.circular(20),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    child: Row(
+                      children: [
+                        Text("Halo, $namaMontir", style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11)),
+                        const SizedBox(width: 6),
+                        CircleAvatar(
+                          radius: 14,
+                          backgroundColor: Colors.orange.shade100,
+                          child: const Icon(Icons.face, size: 16, color: Colors.orange),
+                        )
+                      ],
+                    ),
+                  ),
                 )
               ],
             ),
@@ -443,7 +453,7 @@ class _KontenBerandaMontirState extends State<KontenBerandaMontir> with SingleTi
 }
 
 // =========================================================================
-// 2. HALAMAN CEKLIST PROSES SERVIS (DESAIN PROGRESS BAR & CHECKBOX)
+// 2. HALAMAN CEKLIST PROSES SERVIS (DIKEMBALIKAN UTUH 100%)
 // =========================================================================
 class HalamanProsesServis extends StatelessWidget {
   final VoidCallback onSelesaiSemua;
@@ -691,38 +701,153 @@ class HalamanProsesServis extends StatelessWidget {
                               ),
                             );
                           },
-                    child: Text(
-                      isSemuaSelesai ? "SELESAI & SERAHKAN KUNCI" : "SELESAIKAN TUGAS DULU", 
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)
-                    ),
-                  ),
+                child: Text(
+                  isSemuaSelesai ? "SELESAI & SERAHKAN KUNCI" : "SELESAIKAN TUGAS DULU", 
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)
                 ),
-              )
-            ],
-          ),
-        );
-      },
+              ),
+            ),
+          )
+        ],
+      ),
     );
+  },
+);
   }
 }
 
 // =========================================================
-// 3. HALAMAN PROFIL 
+// 3. HALAMAN PROFIL (SUDAH DIPERBARUI)
 // =========================================================
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
   @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final User? currentUser = FirebaseAuth.instance.currentUser;
+  String _namaMontir = "Mekanik...";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNamaMekanik();
+  }
+
+  Future<void> _loadNamaMekanik() async {
+    if (currentUser != null) {
+      try {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).get();
+        if (doc.exists && doc.data()?['nama'] != null) {
+          setState(() {
+            _namaMontir = doc.data()?['nama'];
+          });
+        }
+      } catch (e) {
+        debugPrint("Error load profil: $e");
+      }
+    }
+  }
+
+  void _konfirmasiLogout(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Konfirmasi Logout"),
+        content: const Text("Apakah Anda yakin ingin keluar dari akun mekanik ini?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Batal"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(context); // Tutup dialog
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+              }
+            },
+            child: const Text("Ya, Logout", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-          onPressed: () async {
-            await FirebaseAuth.instance.signOut();
-            Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-          },
-          child: const Text("LOGOUT"),
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          children: [
+            const Text(
+              "Profil Mekanik",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 40),
+            
+            // FOTO PROFIL (IKON)
+            CircleAvatar(
+              radius: 50,
+              backgroundColor: Colors.blue.shade100,
+              child: Icon(Icons.engineering, size: 60, color: Colors.blue.shade800),
+            ),
+            const SizedBox(height: 20),
+            
+            // NAMA MEKANIK
+            Text(
+              _namaMontir,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            
+            // EMAIL MEKANIK
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.email, size: 16, color: Colors.grey.shade600),
+                  const SizedBox(width: 8),
+                  Text(
+                    currentUser?.email ?? 'Email tidak ditemukan',
+                    style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ),
+            
+            const Spacer(),
+            
+            // TOMBOL LOGOUT
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade50,
+                  foregroundColor: Colors.red.shade700,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Colors.red.shade200),
+                  ),
+                ),
+                onPressed: () => _konfirmasiLogout(context),
+                icon: const Icon(Icons.logout),
+                label: const Text("Keluar Akun (Logout)", style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
         ),
       ),
     );

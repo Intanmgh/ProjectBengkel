@@ -20,101 +20,203 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
   final TextEditingController _searchLayananController = TextEditingController();
   String _keywordLayanan = "";
 
-  // Logika gambar aset lokal sebagai cadangan jika link URL internet dari admin bermasalah
   String _getGambarKategori(String kategori) {
     return "assets/shell_yellow.png"; 
   }
 
-  // 8 Data Menu Layanan Lengkap dengan Detail Konten Dinamis
-  final List<Map<String, dynamic>> layanan = [
+  // ====================================================================
+  // DATABASE SEMUA LAYANAN (Disembunyikan jika tidak ditekan "Lainnya")
+  // ====================================================================
+  final List<Map<String, dynamic>> semuaLayanan = [
     {
       "icon": Icons.build_circle, 
-      "title": "Tune Up & Scanning Mesin",
+      "title": "Tune Up & Scanning",
       "image": "assets/tuneup.png", 
-      "deskripsi": "Tune Up adalah proses standarisasi kembali kondisi mesin kendaraan Anda agar tetap prima. Melalui pemeriksaan menyeluruh, pembersihan sistem pembakaran, dan diagnosa sensor (scanning), Tune Up bertujuan mengembalikan efisiensi bahan bakar dan performa mesin yang mulai menurun akibat pemakaian harian.",
-      "estimasi": "2 - 3 Jam",
-      "garansi": "1 Bulan / 1.000 Km",
-      "interval": "Tiap 10.000 Km / 6 Bulan",
+      "deskripsi": "Tune Up adalah proses standarisasi kembali kondisi mesin kendaraan Anda agar tetap prima. Meliputi penyetelan, pembersihan, dan diagnosa ECU.",
+      "estimasi": "Tergantung Kondisi",
+      "garansi": "Tersedia",
+      "interval": "Sesuai Kebutuhan",
       "harga": "Rp200.000 (Hanya Jasa)",
       "pekerjaan": [
-        "Penyetelan Klep (Valve Clearance): Mengembalikan performa kompresi mesin",
-        "Pemeriksaan Pengapian: Cek/Ganti Busi & Coil Pack.",
-        "Sistem Kelistrikan Aki: Cek voltase & penambahan air aki.",
-        "Sistem Filtrasi: Pembersihan/Penggantian Filter Udara & Filter BBM.",
-        "Pemeriksaan Drive Belt: Cek kondisi Fan Belt, AC, & Power Steering.",
-        "Cek Cairan Hidrolik: Penambahan Minyak Rem, Kopling, & Power Steering.",
-        "Pelumasan Mesin: Cek volume & kualitas oli mesin.",
-        "Sistem Pendingin & Wiper: Cek Air Radiator & Air Wiper."
+        "Periksa / setel klep (Valve clearance).",
+        "Periksa / ganti busi, coil.",
+        "Periksa kondisi aki (accu), tambah air aki.",
+        "Periksa / bersihkan / ganti filter udara dan filter BBM.",
+        "Periksa / setel / ganti fan belt, AC belt, power steering belt.",
+        "Periksa / tambah minyak rem, minyak kopling, minyak power steering.",
+        "Periksa kondisi dan jumlah oli mesin.",
+        "Periksa / tambah air radiator, air wiper.",
+        "Periksa fungsi & kondisi lampu-lampu.",
+        "Pembersihan throttle body.",
+        "Periksa fungsi sensor, actuator, ECU via scanner (scanning system)."
       ]
     },
     {
       "icon": Icons.oil_barrel, 
-      "title": "Ganti Oli",
+      "title": "Ganti Oli & Filter",
       "image": "assets/ganti_oli.png",
-      "deskripsi": "Layanan penggantian oli mesin secara berkala guna menjaga komponen dalam mesin tetap terlumasi dengan baik, mengurangi gesekan, serta mencegah keausan komponen internal.",
+      "deskripsi": "Layanan penggantian oli mesin secara berkala guna menjaga komponen dalam mesin tetap terlumasi dengan baik.",
       "estimasi": "30 - 45 Menit",
       "garansi": "Saran Penggantian Berikutnya",
-      "interval": "Tiap 5.000 Km s/d 10.000 Km",
-      "harga": "Rp50.000 (Jasa Ganti Oli)",
+      "interval": "Tiap 5.000 Km - 10.000 Km",
+      "harga": "Rp60.000 (Jasa)",
       "pekerjaan": [
-        "Pengurasan Oli Lama: Mengeluarkan sisa oli kotor secara maksimal.",
-        "Penggantian Filter Oli: Memastikan sirkulasi oli baru tetap bersih.",
-        "Pengisian Oli Baru: Sesuai takaran spesifikasi standar pabrikan Mitsubishi.",
-        "Reset Indikator Oli: Sinkronisasi ulang pengingat di odometer."
+        "Ganti Oli dan Filter Oli (sesuai tipe kendaraan atau request customer)."
       ]
     },
     {
       "icon": Icons.settings, 
-      "title": "Servis Rem",
+      "title": "Service Rem 4 Roda",
       "image": "assets/servis_rem.png",
-      "deskripsi": "Pemeriksaan dan perawatan sistem pengereman demi keselamatan berkendara. Meliputi pembersihan komponen dari debu asbes, pelumasan kaliper, dan pengecekan ketebalan kampas.",
-      "estimasi": "1 - 1.5 Jam",
-      "garansi": "1 Minggu Pengerjaan",
-      "interval": "Tiap 20.000 Km",
-      "harga": "Rp120.000 (Sepaket Depan-Belakang)",
+      "deskripsi": "Pemeriksaan dan perawatan sistem pengereman demi keselamatan berkendara yang optimal.",
+      "estimasi": "1 - 2 Jam",
+      "garansi": "Tersedia",
+      "interval": "Pengecekan Berkala",
+      "harga": "Rp200.000 - Rp400.000 (Jasa)",
       "pekerjaan": [
-        "Pembersihan Kampas Rem: Menghilangkan residu debu yang bikin rem berdecit.",
-        "Bleeding Minyak Rem: Membuang gelembung udara pada sirkulasi hidrolik rem.",
-        "Pelumasan Pin Kaliper: Mencegah rem macet atau macet sebelah.",
-        "Pengukuran Ketebalan Piringan (Disc Brake): Memastikan batas aman pemakaian."
+        "Periksa / bersihkan / ganti kanvas rem.",
+        "Periksa / ganti blok rem (brake wheel cylinder).",
+        "Periksa / ganti sentral rem (brake master cylinder).",
+        "Periksa / ganti minyak rem."
       ]
     },
     {
-      "icon": Icons.menu_book, 
-      "title": "Manual",
+      "icon": Icons.car_repair, 
+      "title": "Service Kaki-kaki",
       "image": "assets/manual.png",
-      "deskripsi": "Buku panduan digital mengenai standardisasi perawatan mandiri serta jadwal servis berkala resmi Bengkel Jimu Mitsubishi.",
-      "estimasi": "-", "garansi": "-", "interval": "-", "harga": "Gratis (E-Book)",
-      "pekerjaan": ["Membaca panduan servis", "Melihat jadwal perawatan berkala"]
+      "deskripsi": "Perawatan sistem suspensi dan kemudi untuk kenyamanan dan kestabilan laju kendaraan.",
+      "estimasi": "Sesuai Kerusakan",
+      "garansi": "Tersedia",
+      "interval": "Saat Terasa Tidak Stabil",
+      "harga": "Fleksibel (Sesuai Kerusakan)",
+      "pekerjaan": [
+        "Periksa / ganti tie rod, rack end, ball joint, shock absorber, bushing-bushing.",
+        "Periksa / ganti ban atau roda.",
+        "Tire rotation (Rotasi Ban)."
+      ]
+    },
+    {
+      "icon": Icons.electrical_services, 
+      "title": "Electrical System",
+      "image": "assets/manual.png",
+      "deskripsi": "Pengecekan dan perbaikan jalur kelistrikan, lampu, serta sistem pengisian daya aki.",
+      "estimasi": "Sesuai Kerusakan",
+      "garansi": "Tersedia",
+      "interval": "-",
+      "harga": "Fleksibel (Sesuai Kerusakan)",
+      "pekerjaan": [
+        "Periksa / ganti lampu-lampu bagian luar atau dalam kendaraan.",
+        "Periksa / perbaikan / ganti dinamo starter (starting system).",
+        "Periksa / perbaikan / ganti dinamo charge (charging system).",
+        "Periksa / perbaikan wiring harness (perkabelan)."
+      ]
+    },
+    {
+      "icon": Icons.miscellaneous_services, 
+      "title": "Service Kopling",
+      "image": "assets/manual.png",
+      "deskripsi": "Perbaikan dan pergantian komponen transmisi manual (Kopling) agar perpindahan gigi kembali halus.",
+      "estimasi": "Sesuai Pengerjaan",
+      "garansi": "Tersedia",
+      "interval": "Saat Kopling Selip",
+      "harga": "Rp450.000 (Jasa)",
+      "pekerjaan": [
+        "Periksa / ganti prodo kopling (clutch disc).",
+        "Periksa / ganti matahari kopling (clutch cover).",
+        "Periksa / ganti klaher kopling (clutch release bearing).",
+        "Periksa kabel / seling kopling.",
+        "Periksa sentral kopling bawah (power clutch).",
+        "Periksa sentral kopling atas (master clutch).",
+        "Periksa / tambah minyak kopling."
+      ]
     },
     {
       "icon": Icons.build, 
+      "title": "Ganti Timing Belt",
+      "image": "assets/manual.png",
+      "deskripsi": "Pergantian sabuk timing secara berkala untuk mencegah kerusakan fatal pada komponen internal mesin.",
+      "estimasi": "Sesuai Pengerjaan",
+      "garansi": "Tersedia",
+      "interval": "Tiap 80.000 - 100.000 Km",
+      "harga": "Rp300.000 - Rp450.000 (Tergantung Tipe)",
+      "pekerjaan": [
+        "Ganti timing belt.",
+        "Periksa / ganti klaher timing belt.",
+        "Periksa / ganti automatic adjuster timing belt.",
+        "Periksa / ganti fan belt, AC belt, power steering belt."
+      ]
+    },
+    {
+      "icon": Icons.handyman, 
+      "title": "Overhaul Mesin",
+      "image": "assets/manual.png",
+      "deskripsi": "Turun mesin total untuk membersihkan, memeriksa, dan mengganti komponen internal dan eksternal mesin yang rusak.",
+      "estimasi": "Berapa Hari",
+      "garansi": "Tersedia",
+      "interval": "-",
+      "harga": "Rp2.500.000 - Rp4.500.000 (Jasa)",
+      "pekerjaan": [
+        "Periksa / bersihkan / ganti semua komponen bagian dalam mesin.",
+        "Periksa / bersihkan / ganti semua komponen bagian luar mesin."
+      ]
+    },
+    {
+      "icon": Icons.settings_applications, 
+      "title": "Overhaul Transmisi (M)",
+      "image": "assets/manual.png",
+      "deskripsi": "Bongkar total transmisi manual untuk perbaikan gigi, sinkromes, dan komponen lainnya.",
+      "estimasi": "Beberapa Hari",
+      "garansi": "Tersedia",
+      "interval": "-",
+      "harga": "Rp1.500.000 (Jasa)",
+      "pekerjaan": [
+        "Periksa / bersihkan / ganti semua komponen bagian dalam manual transmisi.",
+        "Periksa / bersihkan / ganti semua komponen bagian luar manual transmisi."
+      ]
+    },
+    {
+      "icon": Icons.settings_system_daydream, 
+      "title": "Overhaul Transmisi (A)",
+      "image": "assets/manual.png",
+      "deskripsi": "Bongkar total transmisi otomatis (Matic) untuk perbaikan kampas matic, valve body, dan seal.",
+      "estimasi": "Beberapa Hari",
+      "garansi": "Tersedia",
+      "interval": "-",
+      "harga": "Rp2.500.000 (Jasa)",
+      "pekerjaan": [
+        "Periksa / bersihkan / ganti semua komponen bagian dalam automatic transmisi.",
+        "Periksa / bersihkan / ganti semua komponen bagian luar automatic transmisi."
+      ]
+    },
+    {
+      "icon": Icons.settings_suggest, 
+      "title": "Overhaul Gardan",
+      "image": "assets/manual.png",
+      "deskripsi": "Perbaikan komponen penggerak roda belakang (Differential/Gardan).",
+      "estimasi": "Sesuai Pengerjaan",
+      "garansi": "Tersedia",
+      "interval": "-",
+      "harga": "Rp750.000 (Jasa)",
+      "pekerjaan": [
+        "Periksa / bersihkan / ganti semua komponen bagian dalam gardan.",
+        "Periksa / bersihkan / ganti semua komponen bagian luar gardan."
+      ]
+    },
+    {
+      "icon": Icons.calendar_month, 
       "title": "Booking Servis",
       "image": "assets/booking.png",
       "deskripsi": "Fitur penjadwalan servis instan untuk menghindari antrean panjang di bengkel.",
       "estimasi": "Instan", "garansi": "-", "interval": "-", "harga": "Tanpa Biaya Tambahan",
-      "pekerjaan": ["Pilih hari & jam servis", "Pilih mekanik andalan", "Konfirmasi kedatangan"]
+      "pekerjaan": ["Pilih hari & jam servis", "Konfirmasi kedatangan"]
     },
     {
       "icon": Icons.history, 
       "title": "Riwayat",
       "image": "assets/history.png",
-      "deskripsi": "Rekam medis digital kendaraan Anda, mencakup seluruh riwayat servis yang pernah dilakukan.",
+      "deskripsi": "Melihat riwayat servis yang pernah dilakukan.",
       "estimasi": "-", "garansi": "-", "interval": "-", "harga": "-",
-      "pekerjaan": ["Melihat nota transaksi lama", "Mengecek daftar penggantian part sebelumnya"]
-    },
-    {
-      "icon": Icons.feedback, 
-      "title": "Keluhan",
-      "estimasi": "-", "garansi": "-", "interval": "-", "harga": "-", "pekerjaan": []
-    },
-    {
-      "icon": Icons.more_horiz, 
-      "title": "Lainnya",
-      "image": "assets/lainnya.png",
-      "deskripsi": "Layanan modifikasi ringan, pasang aksesori, AC, atau pengerjaan kustom di luar paket standar.",
-      "estimasi": "Kondisional", "garansi": "Sesuai Part", "interval": "-", "harga": "Hubungi Admin",
-      "pekerjaan": ["Konsultasi pengerjaan khusus", "Pengecekan komponen tambahan"]
+      "pekerjaan": ["Melihat nota", "Mengecek pengerjaan"]
     },
   ];
 
@@ -128,10 +230,37 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
-    final List<Map<String, dynamic>> layananTerfilter = layanan.where((item) {
-      final String judulLayanan = item["title"].toString().toLowerCase();
-      return judulLayanan.contains(_keywordLayanan);
-    }).toList();
+    // =========================================================
+    // LOGIKA FILTER 8 ITEM (2 BARIS) + KELUHAN & LAINNYA
+    // =========================================================
+    List<Map<String, dynamic>> layananTerfilter = [];
+
+    if (_keywordLayanan.isEmpty) {
+      // 1. Ambil 6 Servis Teratas Saja
+      layananTerfilter = semuaLayanan.take(6).toList();
+      
+      // 2. Tambahkan "Keluhan" di posisi ke-7
+      layananTerfilter.add({
+        "icon": Icons.feedback, 
+        "title": "Keluhan",
+        "estimasi": "-", "garansi": "-", "interval": "-", "harga": "-", "pekerjaan": []
+      });
+
+      // 3. Tambahkan "Lainnya" di posisi ke-8 (Paling Ujung)
+      layananTerfilter.add({
+        "icon": Icons.more_horiz, 
+        "title": "Lainnya",
+        "image": "assets/lainnya.png",
+        "deskripsi": "Lihat semua layanan perawatan kendaraan yang tersedia di bengkel kami.",
+        "estimasi": "-", "garansi": "-", "interval": "-", "harga": "-", "pekerjaan": []
+      });
+    } else {
+      // Jika user sedang mengetik pencarian, tampilkan hasil yang cocok dari semua layanan
+      layananTerfilter = semuaLayanan.where((item) {
+        final String judulLayanan = item["title"].toString().toLowerCase();
+        return judulLayanan.contains(_keywordLayanan);
+      }).toList();
+    }
 
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
@@ -178,9 +307,19 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
                       onPressed: () {},
                       icon: const Icon(Icons.notifications_none),
                     ),
-                    CircleAvatar(
-                      backgroundColor: Colors.orange.shade100,
-                      child: const Icon(Icons.person, color: Colors.orange),
+                    // FITUR BARU: Ikon User bisa diklik dan lompat ke AkunMobilePage
+                    InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AkunMobilePage()),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(50),
+                      child: CircleAvatar(
+                        backgroundColor: Colors.orange.shade100,
+                        child: const Icon(Icons.person, color: Colors.orange),
+                      ),
                     ),
                   ],
                 ),
@@ -237,7 +376,7 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
 
               const SizedBox(height: 10),
 
-              // ================= GRID MENU LAYANAN =================
+              // ================= GRID MENU LAYANAN (Dibatasi 2 Baris) =================
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: layananTerfilter.isEmpty
@@ -259,7 +398,7 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
                         itemCount: layananTerfilter.length,
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 4,
-                          childAspectRatio: 0.9,
+                          childAspectRatio: 0.85, 
                           crossAxisSpacing: 10,
                           mainAxisSpacing: 10,
                         ),
@@ -276,10 +415,11 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
                                 );
                               } 
                               else if (title == "Lainnya") {
+                                // Membawa master data semuaLayanan ke halaman SemuaPerawatanPage
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => SemuaPerawatanPage(daftarLayanan: layanan),
+                                    builder: (_) => SemuaPerawatanPage(daftarLayanan: semuaLayanan),
                                   ),
                                 );
                               }
@@ -306,10 +446,15 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
                                     size: 28,
                                   ),
                                   const SizedBox(height: 5),
-                                  Text(
-                                    layananTerfilter[index]["title"],
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(fontSize: 10),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                                    child: Text(
+                                      layananTerfilter[index]["title"],
+                                      textAlign: TextAlign.center,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 10, height: 1.1),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -350,7 +495,7 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
 
               const SizedBox(height: 10),
 
-              // ================= HORIZONTAL LIST DATA FIREBASE (UPDATED IMAGES) =================
+              // ================= HORIZONTAL LIST DATA FIREBASE =================
               SizedBox(
                 height: 190, 
                 child: StreamBuilder<QuerySnapshot>(
@@ -381,7 +526,6 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
                         String kategoriBarang = data['kategori'] ?? "Oli & Cairan";
                         String namaBarang = data['nama'] ?? "-";
                         
-                        // Proteksi Multi-Type untuk tipe data int/string/num dari Firestore
                         int hargaJual = 0;
                         if (data['harga_jual'] != null) {
                           hargaJual = (data['harga_jual'] is String)
@@ -389,7 +533,6 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
                               : (data['harga_jual'] as num).toInt();
                         }
                         
-                        // ✅ SINKRONISASI: Mengambil field URL gambar 'foto_url' dari admin
                         String? urlGambar = data['foto_url'];
 
                         final formatRupiah = NumberFormat.currency(
@@ -410,14 +553,13 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // Menampilkan Gambar Network secara real-time atau Fallback Asset jika kosong
                               Expanded(
                                 child: urlGambar != null && urlGambar.isNotEmpty && urlGambar.startsWith('http')
                                     ? ClipRRect(
                                         borderRadius: BorderRadius.circular(10),
                                         child: Image.network(
                                           urlGambar,
-                                          fit: BoxFit.cover, // Diubah menjadi cover agar rapi mengisi kotak preview horizontal
+                                          fit: BoxFit.cover, 
                                           loadingBuilder: (context, child, loadingProgress) {
                                             if (loadingProgress == null) return child;
                                             return const Center(
@@ -598,3 +740,4 @@ class _DashboardMobilePageState extends State<DashboardMobilePage> {
     );
   }
 }
+

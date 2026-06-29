@@ -10,185 +10,239 @@ class RegisterMobilePage extends StatefulWidget {
 }
 
 class _RegisterMobilePageState extends State<RegisterMobilePage> {
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
-  bool isLoading = false;
+  // ================= CONTROLLER INPUT FORM =================
+  final TextEditingController _namaController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _telpController = TextEditingController();
+  final TextEditingController _platController = TextEditingController();
+  final TextEditingController _kendaraanController = TextEditingController();
+  final TextEditingController _kmController = TextEditingController(); // Controller Baru untuk KM
+  final TextEditingController _passwordController = TextEditingController();
 
-  Future<void> registerUser() async {
-    // 1. Validasi Input Kosong
-    if (emailController.text.trim().isEmpty || passwordController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Email dan Kata Sandi tidak boleh kosong!")),
-      );
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+
+  // ====================================================================
+  // FUNGSI UTAMA: DAFTAR AKUN AUTH + SIMPAN KE DATABASE ADMIN
+  // ====================================================================
+  Future<void> _prosesRegistrasiPelanggan() async {
+    // 1. Validasi: KM tidak dimasukkan ke dalam pengecekan ini karena sifatnya Opsional
+    if (_namaController.text.trim().isEmpty ||
+        _emailController.text.trim().isEmpty ||
+        _telpController.text.trim().isEmpty ||
+        _platController.text.trim().isEmpty ||
+        _kendaraanController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty) {
+      _showSnackbar("Selain KM, seluruh form wajib diisi untuk keperluan data Bengkel!", isError: true);
       return;
     }
 
-    // 2. Validasi Kesamaan Kata Sandi (Tambahan Baru)
-    if (passwordController.text.trim() != confirmPasswordController.text.trim()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Kata Sandi dan Konfirmasi Kata Sandi tidak cocok!"), 
-          backgroundColor: Colors.orange
-        ),
-      );
-      return;
-    }
-
-    setState(() => isLoading = true);
+    setState(() => _isLoading = true);
 
     try {
-      // 3. Daftarkan akun ke Auth pusat proyek
-      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
+      // 2. Mendaftarkan akun di sistem Firebase Authentication
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
       );
 
-      // 4. Ambil UID yang baru saja terbuat
-      String uid = userCredential.user!.uid;
+      final String userUid = userCredential.user!.uid;
 
-      // 5. Buat koleksi 'users' di Cloud Firestore secara otomatis untuk mengunci role pelanggan
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
-        'uid': uid,
-        'email': emailController.text.trim(),
-        'role': 'pelanggan', // Pengenal utama akun mobile pelanggan otomatis terproteksi
-        'createdAt': FieldValue.serverTimestamp(),
+      // 3. Menyimpan Biodata Pelanggan ke tabel 'pelanggan' milik Admin
+      await FirebaseFirestore.instance
+          .collection('pelanggan')
+          .doc(userUid)
+          .set({
+        'id': userUid, 
+        'uid_akun': userUid, 
+        'nama': _namaController.text.trim(),
+        'email': _emailController.text.trim().toLowerCase(),
+        'telepon': _telpController.text.trim(),
+        'plat': _platController.text.trim().toUpperCase(), 
+        'kendaraan': _kendaraanController.text.trim(),
+        // Logika KM opsional: Jika diisi maka simpan angkanya, jika kosong simpan '-'
+        'km': _kmController.text.trim().isNotEmpty ? _kmController.text.trim() : '-', 
+        'role': 'Pelanggan',
+        'created_at': Timestamp.now(),
       });
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Register pelanggan berhasil!"), backgroundColor: Colors.green),
-      );
-
+      _showSnackbar("Pendaftaran Berhasil! Data Anda sudah terhubung ke sistem Bengkel.", isError: false);
+      
+      // 4. Tutup halaman register dan kembali ke halaman Login
       Navigator.pop(context);
 
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      String pesanError = "Terjadi kesalahan.";
+      if (e.code == 'weak-password') {
+        pesanError = "Password terlalu lemah (minimal 6 karakter).";
+      } else if (e.code == 'email-already-in-use') {
+        pesanError = "Email ini sudah terdaftar sebelumnya.";
+      } else if (e.code == 'invalid-email') {
+        pesanError = "Format email tidak valid.";
+      }
+      _showSnackbar(pesanError, isError: true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Register gagal: $e"), backgroundColor: Colors.red),
-      );
+      _showSnackbar("Gagal mendaftar: $e", isError: true);
     } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showSnackbar(String message, {required bool isError}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _namaController.dispose();
+    _emailController.dispose();
+    _telpController.dispose();
+    _platController.dispose();
+    _kendaraanController.dispose();
+    _kmController.dispose(); // Hapus controller memori KM
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
+        title: const Text("Daftar Akun", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
+        foregroundColor: Colors.black,
+        elevation: 0.5,
+        centerTitle: true,
       ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 10.0),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight - 20),
-                child: IntrinsicHeight(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Judul Halaman
-                      const Text(
-                        "Daftar Akun Baru",
-                        style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        "Silahkan lengkapi data untuk membuat akun mobile",
-                        style: TextStyle(color: Colors.black54, fontSize: 13),
-                      ),
-                      
-                      const Spacer(),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [BoxShadow(color: Colors.grey.shade200, blurRadius: 8, offset: const Offset(0, 4))],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Lengkapi Data Kendaraan",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  "Data yang Anda masukkan akan digunakan Admin bengkel untuk memproses SPK kendaraan Anda.",
+                  style: TextStyle(fontSize: 12, color: Colors.grey, height: 1.4),
+                ),
+                const SizedBox(height: 24),
 
-                      // ALAMAT EMAIL
-                      const Text("Alamat Email", style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        style: const TextStyle(fontSize: 14),
-                        decoration: InputDecoration(
-                          hintText: "nama@email.com",
-                          prefixIcon: const Icon(Icons.email, size: 20),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-
-                      const SizedBox(height: 14),
-
-                      // KATA SANDI
-                      const Text("Kata Sandi", style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: passwordController,
-                        obscureText: true,
-                        style: const TextStyle(fontSize: 14),
-                        decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.lock, size: 20),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-
-                      const SizedBox(height: 14),
-
-                      // KONFIRMASI KATA SANDI
-                      const Text("Konfirmasi Kata Sandi", style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: confirmPasswordController,
-                        obscureText: true,
-                        style: const TextStyle(fontSize: 14),
-                        decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.lock_clock_outlined, size: 20),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-
-                      const SizedBox(height: 25),
-
-                      // TOMBOL DAFTAR
-                      SizedBox(
-                        width: double.infinity,
-                        height: 42,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[800],
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          onPressed: isLoading ? null : registerUser,
-                          child: isLoading 
-                              ? const SizedBox(
-                                  width: 18, 
-                                  height: 18, 
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                                )
-                              : const Text("Daftar Sekarang", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-
-                      const Spacer(),
-                    ],
+                _buildInputField("Nama Lengkap", "Masukkan nama sesuai KTP", _namaController, Icons.person),
+                _buildInputField("Email Aktif", "contoh@email.com", _emailController, Icons.email, keyboardType: TextInputType.emailAddress),
+                _buildInputField("Nomor Telepon / WA", "0812XXXXXXXX", _telpController, Icons.phone, keyboardType: TextInputType.phone),
+                _buildInputField("Nomor Plat Kendaraan", "BE 1234 ABC", _platController, Icons.badge),
+                _buildInputField("Model Kendaraan", "Xpander Cross / Pajero Sport", _kendaraanController, Icons.directions_car),
+                
+                // Input KM Baru (Opsional)
+                _buildInputField("Kilometer Kendaraan (Opsional)", "Contoh: 25000", _kmController, Icons.speed, keyboardType: TextInputType.number),
+                
+                // Input Password
+                const Text("Password", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black54)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    hintText: "Minimal 6 karakter",
+                    prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, size: 20, color: Colors.grey),
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                   ),
                 ),
-              ),
-            );
-          },
+
+                const SizedBox(height: 30),
+
+                // Tombol Submit
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue.shade800,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 2,
+                    ),
+                    onPressed: _isLoading ? null : _prosesRegistrasiPelanggan,
+                    child: _isLoading
+                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                        : const Text("DAFTAR SEKARANG", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1)),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
+      ),
+    );
+  }
+
+  // Widget bantuan untuk membuat form input
+  Widget _buildInputField(
+    String label,
+    String hint,
+    TextEditingController controller,
+    IconData icon, {
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black54)),
+          const SizedBox(height: 6),
+          TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            textCapitalization: label.contains("Plat") ? TextCapitalization.characters : TextCapitalization.words,
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+              prefixIcon: Icon(icon, size: 20, color: Colors.grey.shade600),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade100,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            ),
+          ),
+        ],
       ),
     );
   }
