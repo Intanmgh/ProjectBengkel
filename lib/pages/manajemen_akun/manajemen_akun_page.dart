@@ -377,7 +377,7 @@ class _ManajemenAkunPageState
 
                                         const SizedBox(width: 8),
 
-                                        // 🗑️ HAPUS
+                                        // 🗑 HAPUS
                                         Tooltip(
                                           message: "Hapus Akun",
                                           child: GestureDetector(

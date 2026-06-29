@@ -301,18 +301,50 @@ void editData(DocumentSnapshot doc) {
                                             DataCell(Text(d['kendaraan'] ?? '')),
                                             DataCell(Text(d['plat'] ?? '')),
                                             DataCell(Text(d['km'] ?? '')),
-                                            DataCell(Row(
-                                              children: [
-                                                IconButton(
-                                                  icon: const Icon(Icons.edit, color: Colors.blue),
-                                                  onPressed: () => editData(doc),
+
+                                            DataCell(
+                                                Row(
+                                                  children: [
+
+                                                    // ✏️ EDIT
+                                                    GestureDetector(
+                                                      onTap: () => editData(doc),
+                                                      child: Container(
+                                                        padding: const EdgeInsets.all(6),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.blue.shade100,
+                                                          borderRadius: BorderRadius.circular(4),
+                                                        ),
+                                                        child: const Icon(
+                                                          Icons.edit,
+                                                          size: 16,
+                                                          color: Colors.blue,
+                                                        ),
+                                                      ),
+                                                    ),
+
+                                                    const SizedBox(width: 6),
+
+                                                    // 🗑 DELETE
+                                                    GestureDetector(
+                                                      onTap: () => hapusData(doc.id),
+                                                      child: Container(
+                                                        padding: const EdgeInsets.all(6),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.red.shade100,
+                                                          borderRadius: BorderRadius.circular(4),
+                                                        ),
+                                                        child: const Icon(
+                                                          Icons.delete,
+                                                          size: 16,
+                                                          color: Colors.red,
+                                                        ),
+                                                      ),
+                                                    ),
+
+                                                  ],
                                                 ),
-                                                IconButton(
-                                                  icon: const Icon(Icons.delete, color: Colors.red),
-                                                  onPressed: () => hapusData(doc.id),
-                                                ),
-                                              ],
-                                            )),
+                                              ),
                                           ]);
                                         }).toList(),
                                 ),
